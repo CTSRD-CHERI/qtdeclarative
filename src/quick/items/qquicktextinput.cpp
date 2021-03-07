@@ -611,7 +611,10 @@ Qt::LayoutDirection QQuickTextInputPrivate::textDirection() const
     if (text.isEmpty())
         text = m_textLayout.preeditAreaText();
 #endif
-
+#if defined(__CHERI_PURE_CAPABILITY__)
+	if (text.isEmpty()) //assume LTR if empty, else we get a length violation
+        return Qt::LeftToRight;
+#endif
     const QChar *character = text.constData();
     while (!character->isNull()) {
         switch (character->direction()) {
