@@ -40,6 +40,8 @@
 #ifndef QSGRENDERNODE_H
 #define QSGRENDERNODE_H
 
+#include <QPainter>
+
 #include <QtQuick/qsgnode.h>
 
 QT_BEGIN_NAMESPACE
@@ -77,6 +79,7 @@ public:
         virtual bool stencilEnabled() const = 0;
         virtual const QRegion *clipRegion() const = 0;
         virtual void *get(const char *state) const;
+		virtual QPainter *painter() const = 0;
     };
 
     QSGRenderNode();

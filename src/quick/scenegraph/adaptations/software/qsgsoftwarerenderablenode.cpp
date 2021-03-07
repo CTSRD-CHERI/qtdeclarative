@@ -238,8 +238,10 @@ struct RenderNodeState : public QSGRenderNode::RenderState
     int stencilValue() const override { return 0; }
     bool stencilEnabled() const override { return false; }
     const QRegion *clipRegion() const override { return &cr; }
+	QPainter *painter() const override { return pr; }
     QMatrix4x4 ident;
     QRegion cr;
+	QPainter *pr;
 };
 
 QRegion QSGSoftwareRenderableNode::renderNode(QPainter *painter, bool forceOpaquePainting)
@@ -271,6 +273,7 @@ QRegion QSGSoftwareRenderableNode::renderNode(QPainter *painter, bool forceOpaqu
 
             painter->save();
             RenderNodeState rs;
+			rs.pr = painter;
             rs.cr = cr;
             m_handle.renderNode->render(&rs);
             painter->restore();
