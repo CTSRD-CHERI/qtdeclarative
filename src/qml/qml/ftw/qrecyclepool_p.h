@@ -83,6 +83,7 @@ public:
             char array[Step * sizeof(PoolType)];
             qint64 q_for_alignment_1;
             double q_for_alignment_2;
+			quintptr q_for_alignment_3;
         };
     };
 
