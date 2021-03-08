@@ -78,10 +78,10 @@ struct TargetPrimitive32 {
     quint32 value() const { return _val & quint64(~quint32(0)); }
     quint32 tag() const { return _val >> 32; }
 
-    quint64 rawValue() const { return _val; }
+    ReturnedValue rawValue() const { return _val; }
 
 private:
-    quint64 _val;
+    ReturnedValue _val;
 };
 
 struct TargetPrimitive64 {
@@ -105,10 +105,10 @@ struct TargetPrimitive64 {
     quint32 value() const { return _val & quint64(~quint32(0)); }
     quint32 tag() const { return _val >> 32; }
 
-    quint64 rawValue() const { return _val; }
+    ReturnedValue rawValue() const { return _val; }
 
 private:
-    quint64 _val;
+    ReturnedValue _val;
 };
 
 inline bool canConvertToSignedInteger(double value)
