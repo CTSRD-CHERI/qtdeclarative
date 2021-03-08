@@ -54,6 +54,9 @@
 #include <private/qv4runtimeapi_p.h>
 #include <QtCore/qalgorithms.h>
 #include <qdebug.h>
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <cheri/cheric.h>
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -86,6 +89,7 @@ typedef void(*ClassDestroyStatsCallback)(const char *);
  * When sweeping, simply copy the black bits over to the object bits.
  *
  */
+//XXX-CHERI-PBB: :<
 struct HeapItem;
 struct Chunk {
     enum {
@@ -109,7 +113,6 @@ struct Chunk {
 #if QT_POINTER_SIZE == 8
         Bits = 64,
         BitShift = 6,
-#else
 #elif QT_POINTER_SIZE == 4
         Bits = 32,
         BitShift = 5,
@@ -227,7 +230,14 @@ struct HeapItem {
     T *as() { return static_cast<T *>(reinterpret_cast<Heap::Base *>(this)); }
 
     Chunk *chunk() const {
+#ifndef __CHERI_PURE_CAPABILITY__
         return reinterpret_cast<Chunk *>(reinterpret_cast<quintptr>(this) >> Chunk::ChunkShift << Chunk::ChunkShift);
+#else
+        //XXX-PBB: The pointer can become unrepresentable after the first shift above, trashing its validity even if it's representable
+		//after the second shift. To avoid this, we calculate the address and then generate the new capablity from the original.
+		//Still better would be to use align down builtins.
+        return reinterpret_cast<Chunk *>(const_cast<void *>(cheri_setaddress(this, reinterpret_cast<quintptr>(this) >> Chunk::ChunkShift << Chunk::ChunkShift)));
+#endif
     }
 
     bool isGray() const {
