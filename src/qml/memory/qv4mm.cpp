@@ -512,7 +512,7 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
 {
 //    qDebug() << "sortIntoBins:";
     HeapItem *base = realBase();
-#if QT_POINTER_SIZE == 8
+#if QT_POINTER_SIZE == 8 || QT_POINTER_SIZE == 16
     const int start = 0;
 #else
     const int start = 1;
@@ -523,7 +523,7 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
 #endif
     for (int i = start; i < EntriesInBitmap; ++i) {
         quintptr usedSlots = (objectBitmap[i]|extendsBitmap[i]);
-#if QT_POINTER_SIZE == 8
+#if QT_POINTER_SIZE == 8 || QT_POINTER_SIZE == 16
         if (!i)
             usedSlots |= (static_cast<quintptr>(1) << (HeaderSize/SlotSize)) - 1;
 #endif
