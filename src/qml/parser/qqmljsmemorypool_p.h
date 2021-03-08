@@ -93,7 +93,7 @@ public:
 
     inline void *allocate(size_t size)
     {
-        size = (size + 7) & ~7;
+        size = (size + 0xf) & ~0xf;
         if (Q_LIKELY(_ptr && (_ptr + size < _end))) {
             void *addr = _ptr;
             _ptr += size;
