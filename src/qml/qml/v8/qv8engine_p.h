@@ -147,7 +147,7 @@ public:
     operator QV4::ReturnedValue() const { return d; }
 
 private:
-    quint64 d;
+    quintptr d;
 };
 
 class QObject;
