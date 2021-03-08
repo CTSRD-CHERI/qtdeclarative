@@ -71,11 +71,16 @@ struct EngineBase {
     quint16 unused = 0;
 #if QT_POINTER_SIZE == 8
     quint8 padding[4];
+#elif QT_POINTER_SIZE == 16	
+	quint8 padding[12];
 #endif
     MemoryManager *memoryManager = 0;
     Runtime runtime;
 
     qint32 callDepth = 0;
+#if QT_POINTER_SIZE == 16
+	quint8 padding2[12];
+#endif
     Value *jsStackLimit = 0;
     Value *jsStackBase = 0;
 

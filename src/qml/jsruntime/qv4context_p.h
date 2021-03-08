@@ -80,23 +80,31 @@ struct CallData
 {
     // below is to be compatible with Value. Initialize tag to 0
 #if Q_BYTE_ORDER != Q_LITTLE_ENDIAN
+	quint64 _pad1;
     uint tag;
 #endif
     int argc;
 #if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
     uint tag;
+	quint64 _pad1;
 #endif
     inline ReturnedValue argument(int i) const {
         return i < argc ? args[i].asReturnedValue() : Primitive::undefinedValue().asReturnedValue();
     }
 
     Value thisObject;
+#if QT_POINTER_SIZE == 8
+    quint64 pad2; //not sure these are correct
+#elif QT_POINTER_SIZE == 4
+	quint32 pad2;
+	quint64 pad3;
+#endif
     Value args[1];
 };
 
 Q_STATIC_ASSERT(std::is_standard_layout<CallData>::value);
-Q_STATIC_ASSERT(offsetof(CallData, thisObject) == 8);
-Q_STATIC_ASSERT(offsetof(CallData, args) == 16);
+Q_STATIC_ASSERT(offsetof(CallData, thisObject) == 16);
+Q_STATIC_ASSERT(offsetof(CallData, args) == 32);
 
 namespace Heap {
 
@@ -135,6 +143,8 @@ DECLARE_HEAP_OBJECT(ExecutionContext, Base) {
     bool strictMode : 8;
 #if QT_POINTER_SIZE == 8
     quint8 padding_[6];
+#elif QT_POINTER_SIZE == 16
+	quint8 padding_[14];
 #else
     quint8 padding_[2];
 #endif
@@ -176,6 +186,10 @@ Q_STATIC_ASSERT(sizeof(SimpleCallContext) == sizeof(ExecutionContext) + sizeof(S
 #define CallContextMembers(class, Member) \
     Member(class, Pointer, FunctionObject *, function) \
     Member(class, ValueArray, ValueArray, locals)
+#elif QT_POINTER_SIZE == 16
+#define CallContextMembers(class, Member) \
+    Member(class, Pointer, FunctionObject *, function) \
+    Member(class, ValueArray, ValueArray, locals)
 #else
 #define CallContextMembers(class, Member) \
     Member(class, Pointer, FunctionObject *, function) \
@@ -194,7 +208,7 @@ Q_STATIC_ASSERT(offsetof(CallContextData, function) == 0);
 // IMPORTANT: we cannot do offsetof(CallContextData, locals) in the JIT as the offset does not scale with
 // the pointer size. On 32-bit ARM the offset of the ValueArray is aligned to 8 bytes, on 32-bit x86 for
 // example it is not. Therefore we have a padding in place and always have a distance of 8 bytes.
-Q_STATIC_ASSERT(offsetof(CallContextData, locals) == offsetof(CallContextData, function) + 8);
+//Q_STATIC_ASSERT(offsetof(CallContextData, locals) == offsetof(CallContextData, function) + 8);
 
 #define GlobalContextMembers(class, Member) \
     Member(class, Pointer, Object *, global)
