@@ -224,7 +224,11 @@ struct TypedArray;
 // the type has to be a primitive type (no struct or union), so that the compiler
 // will return it in a register on all platforms.
 // It will be returned in rax on x64, [eax,edx] on x86 and [r0,r1] on arm
+#if QT_POINTER_SIZE == 4
 typedef quint64 ReturnedValue;
+#else
+typedef quintptr ReturnedValue;
+#endif
 struct CallData;
 struct Scope;
 struct ScopedValue;
