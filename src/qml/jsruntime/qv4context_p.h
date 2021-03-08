@@ -90,6 +90,8 @@ DECLARE_HEAP_OBJECT(ExecutionContext, Base) {
     quint32 nArgs : 24;
 #if QT_POINTER_SIZE == 8
     quint8 padding_[4];
+#elif QT_POINTER_SIZE == 16
+    quint8 padding_[12];
 #endif
 };
 Q_STATIC_ASSERT(std::is_trivial< ExecutionContext >::value);

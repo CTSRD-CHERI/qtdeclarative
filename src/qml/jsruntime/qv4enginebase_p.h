@@ -84,12 +84,19 @@ struct Q_QML_EXPORT EngineBase {
 #endif
 
     quint8 isExecutingInRegExpJIT = false;
+#if QT_POINTER_SIZE == 16
+    quint8 padding[11];
+#else
     quint8 padding[3];
+#endif
     MemoryManager *memoryManager = nullptr;
 
     qint32 callDepth = 0;
     Value *jsStackLimit = nullptr;
     Value *jsStackBase = nullptr;
+#if QT_POINTER_SIZE == 16
+    quint8 padding2[12];
+#endif
 
     IdentifierTable *identifierTable = nullptr;
     Object *globalObject = nullptr;
