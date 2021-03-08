@@ -411,7 +411,11 @@ bool Chunk::sweep(ExecutionEngine *engine)
         grayBitmap[i] = 0;
         hasUsedSlots |= (blackBitmap[i] != 0);
         extendsBitmap[i] = e;
+#ifdef __CHERI_PURE_CAPABILITY__
+        lastSlotFree = !((objectBitmap[i]|extendsBitmap[i]) >> (sizeof(vaddr_t)*8 - 1));
+#else
         lastSlotFree = !((objectBitmap[i]|extendsBitmap[i]) >> (sizeof(quintptr)*8 - 1));
+#endif
         SDUMP() << "        new extends =" << binary(e);
         SDUMP() << "        lastSlotFree" << lastSlotFree;
         Q_ASSERT((objectBitmap[i] & extendsBitmap[i]) == 0);
