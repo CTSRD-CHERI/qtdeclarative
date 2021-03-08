@@ -220,6 +220,8 @@ private:
     template <typename T>
     static inline uint toArrayIndex(const T *ch, const T *end)
     {
+		if (ch == end)
+            return UINT_MAX;
         uint i = toUInt(ch) - '0';
         if (i > 9)
             return UINT_MAX;
