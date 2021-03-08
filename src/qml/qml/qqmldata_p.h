@@ -167,7 +167,11 @@ public:
     quint32 bindingBitsArraySize : 16;
     typedef quintptr BindingBitsType;
     enum {
+#ifdef __CHERI_PURE_CAPABILITY__
+        BitsPerType = (sizeof(BindingBitsType) * 8) / 2, //uintptr_t is effectively 64-bits with 128-bit size requirements
+#else
         BitsPerType = sizeof(BindingBitsType) * 8,
+#endif
         InlineBindingArraySize = 2
     };
     union {

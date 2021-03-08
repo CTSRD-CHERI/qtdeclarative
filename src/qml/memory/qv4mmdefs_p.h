@@ -95,7 +95,15 @@ struct Chunk {
         SlotSize = 32,
         SlotSizeShift = 5,
         NumSlots = ChunkSize/SlotSize,
+#ifndef __CHERI_PURE_CAPABILITY__
         BitmapSize = NumSlots/8,
+#else
+#ifdef _VADDR_T_DECLARED
+        BitmapSize = (NumSlots/8)*(sizeof(uintptr_t)/sizeof(vaddr_t)), //uintptr_t only covers at most half what this thinks it will on cheri
+#else 
+        BitmapSize = (NumSlots/8)*2,
+#endif
+#endif
         HeaderSize = 4*BitmapSize,
         DataSize = ChunkSize - HeaderSize,
         AvailableSlots = DataSize/SlotSize,
@@ -103,8 +111,17 @@ struct Chunk {
         Bits = 64,
         BitShift = 6,
 #else
+#elif QT_POINTER_SIZE == 4
         Bits = 32,
         BitShift = 5,
+#elif QT_POINTER_SIZE == 16
+#ifdef __CHERI_PURE_CAPABILITY__
+        Bits = 64, //uintptr_t manipulations largely treat it as being a vaddr_t with cap sized alignment + storage
+        BitShift = 6,
+#else 
+        Bits = 128, 
+        BitShift = 7,
+#endif
 #endif
         EntriesInBitmap = BitmapSize/sizeof(quintptr)
     };
@@ -268,7 +285,11 @@ Q_STATIC_ASSERT(sizeof(Chunk) == Chunk::ChunkSize);
 Q_STATIC_ASSERT((1 << Chunk::ChunkShift) == Chunk::ChunkSize);
 Q_STATIC_ASSERT(1 << Chunk::SlotSizeShift == Chunk::SlotSize);
 Q_STATIC_ASSERT(sizeof(HeapItem) == Chunk::SlotSize);
+#ifndef __CHERI_PURE_CAPABILITY__
 Q_STATIC_ASSERT(QT_POINTER_SIZE*8 == Chunk::Bits);
+#else
+Q_STATIC_ASSERT(sizeof(vaddr_t)*8 == Chunk::Bits);
+#endif
 Q_STATIC_ASSERT((1 << Chunk::BitShift) == Chunk::Bits);
 
 struct Q_QML_PRIVATE_EXPORT MarkStack {
