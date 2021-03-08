@@ -67,7 +67,11 @@ namespace QV4 {
 // the type has to be a primitive type (no struct or union), so that the compiler
 // will return it in a register on all platforms.
 // It will be returned in rax on x64, [eax,edx] on x86 and [r0,r1] on arm
+#if QT_POINTER_SIZE == 4
 typedef quint64 ReturnedValue;
+#else
+typedef quintptr ReturnedValue;
+#endif
 
 struct Double {
     quint64 d;
@@ -119,7 +123,7 @@ struct Double {
 struct StaticValue
 {
     StaticValue() = default;
-    constexpr StaticValue(quint64 val) : _val(val) {}
+    constexpr StaticValue(ReturnedValue val) : _val(val) {}
 
     StaticValue &operator=(ReturnedValue v)
     {
@@ -189,11 +193,11 @@ struct StaticValue
           63) are zero. No need to shift.
     */
 
-    quint64 _val;
+    ReturnedValue _val;
 
-    QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR quint64 &rawValueRef() { return _val; }
-    QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR quint64 rawValue() const { return _val; }
-    QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR void setRawValue(quint64 raw) { _val = raw; }
+    QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR ReturnedValue &rawValueRef() { return _val; }
+    QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR ReturnedValue rawValue() const { return _val; }
+    QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR void setRawValue(ReturnedValue raw) { _val = raw; }
 
 #if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
     static inline int valueOffset() { return 0; }
@@ -547,7 +551,7 @@ struct Encode {
     constexpr operator ReturnedValue() const {
         return val;
     }
-    quint64 val;
+    ReturnedValue val;
 private:
     explicit Encode(void *);
 };

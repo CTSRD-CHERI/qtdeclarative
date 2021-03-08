@@ -62,6 +62,10 @@
 #include <private/qnumeric_p.h>
 #include <private/qv4calldata_p.h>
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define QV4_USE_CAPABILITY_VALUE_ENCODING
+#endif
+
 QT_BEGIN_NAMESPACE
 
 namespace QV4 {
@@ -83,7 +87,7 @@ struct Q_QML_PRIVATE_EXPORT Value : public StaticValue
         return {staticValue._val};
     }
 
-#if QT_POINTER_SIZE == 8
+#if QT_POINTER_SIZE == 8 || defined(__CHERI_PURE_CAPABILITY__)
     QML_NEARLY_ALWAYS_INLINE HeapBasePtr m() const
     {
         HeapBasePtr b;
@@ -96,13 +100,13 @@ struct Q_QML_PRIVATE_EXPORT Value : public StaticValue
         _tmp = (_tmp << 14) | (_val ^ _tmp);
         memcpy(&b, &_tmp, 8);
 #else
-        memcpy(&b, &_val, 8);
+        memcpy(&b, &_val, sizeof(b));
 #endif
         return b;
     }
     QML_NEARLY_ALWAYS_INLINE void setM(HeapBasePtr b)
     {
-        memcpy(&_val, &b, 8);
+        memcpy(&_val, &b, sizeof(b));
 #ifdef __ia64
 // On ia64, bits 63-61 in a 64-bit pointer are used to store the virtual region
 // number.  Since this implementation is not 64-bit clean, we move bits 63-61
