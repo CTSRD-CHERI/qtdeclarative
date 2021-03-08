@@ -158,6 +158,9 @@ template <size_t offset>
 struct ValueArray {
     uint size;
     uint alloc;
+#if QT_POINTER_SIZE != 16 //force alignment
+    quint64 _pad;
+#endif
     Value values[1];
 
     Heap::Base *base() {
@@ -197,7 +200,8 @@ struct ValueArray {
 // It's really important that the offset of values in this structure is
 // constant across all architecture,  otherwise JIT cross-compiled code will
 // have wrong offsets between host and target.
-Q_STATIC_ASSERT(offsetof(ValueArray<0>, values) == 8);
+Q_STATIC_ASSERT(offsetof(ValueArray<0>, values) == 16);
+
 
 }
 
