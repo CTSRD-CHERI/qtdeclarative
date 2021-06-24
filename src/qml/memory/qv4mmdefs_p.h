@@ -227,7 +227,12 @@ struct HeapItem {
     T *as() { return static_cast<T *>(reinterpret_cast<Heap::Base *>(this)); }
 
     Chunk *chunk() const {
+#if QT_HAS_BUILTIN(__builtin_align_down)
+        return const_cast<Chunk *>(reinterpret_cast<const Chunk *>(
+                __builtin_align_down(this, (unsigned)Chunk::ChunkSize)));
+#else
         return reinterpret_cast<Chunk *>(reinterpret_cast<quintptr>(this) >> Chunk::ChunkShift << Chunk::ChunkShift);
+#endif
     }
 
     bool isGray() const {
