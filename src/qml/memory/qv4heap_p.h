@@ -185,8 +185,8 @@ void Base::mark(QV4::MarkStack *markStack)
     Chunk *c = h->chunk();
     size_t index = h - c->realBase();
     Q_ASSERT(!Chunk::testBit(c->extendsBitmap, index));
-    quintptr *bitmap = c->blackBitmap + Chunk::bitmapIndex(index);
-    quintptr bit = Chunk::bitForIndex(index);
+    size_t *bitmap = c->blackBitmap + Chunk::bitmapIndex(index);
+    size_t bit = Chunk::bitForIndex(index);
     if (!(*bitmap & bit)) {
         *bitmap |= bit;
         markStack->push(this);

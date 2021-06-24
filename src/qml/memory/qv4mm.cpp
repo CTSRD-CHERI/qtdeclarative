@@ -127,9 +127,13 @@ struct MemorySegment {
             size = SegmentSize;
 
         pageReservation = PageReservation::reserve(size, OSAllocator::JSGCHeapPages);
+#if QT_HAS_BUILTIN(__builtin_align_up)
+        base = reinterpret_cast<Chunk *>(__builtin_align_up(pageReservation.base(), (unsigned)Chunk::ChunkSize));
+#else
         base = reinterpret_cast<Chunk *>((reinterpret_cast<quintptr>(pageReservation.base()) + Chunk::ChunkSize - 1) & ~(Chunk::ChunkSize - 1));
+#endif
         nChunks = NumChunks;
-        availableBytes = size - (reinterpret_cast<quintptr>(base) - reinterpret_cast<quintptr>(pageReservation.base()));
+        availableBytes = size - (reinterpret_cast<const char *>(base) - reinterpret_cast<const char *>(pageReservation.base()));
         if (availableBytes < SegmentSize)
             --nChunks;
     }
@@ -314,9 +318,9 @@ bool Chunk::sweep(ExecutionEngine *engine)
 #if WRITEBARRIER(none)
         Q_ASSERT((grayBitmap[i] | blackBitmap[i]) == blackBitmap[i]); // check that we don't have gray only objects
 #endif
-        quintptr toFree = objectBitmap[i] ^ blackBitmap[i];
+        size_t toFree = objectBitmap[i] ^ blackBitmap[i];
         Q_ASSERT((toFree & objectBitmap[i]) == toFree); // check all black objects are marked as being used
-        quintptr e = extendsBitmap[i];
+        size_t e = extendsBitmap[i];
         SDUMP() << "   index=" << i;
         SDUMP() << "        toFree      =" << binary(toFree);
         SDUMP() << "        black       =" << binary(blackBitmap[i]);
@@ -326,16 +330,16 @@ bool Chunk::sweep(ExecutionEngine *engine)
             e &= (e + 1); // clear all lowest extent bits
         while (toFree) {
             uint index = qCountTrailingZeroBits(toFree);
-            quintptr bit = (static_cast<quintptr>(1) << index);
+            size_t bit = (static_cast<size_t>(1) << index);
 
             toFree ^= bit; // mask out freed slot
             //            DEBUG << "       index" << hex << index << toFree;
 
             // remove all extends slots that have been freed
             // this is a bit of bit trickery.
-            quintptr mask = (bit << 1) - 1; // create a mask of 1's to the right of and up to the current bit
-            quintptr objmask = e | mask; // or'ing mask with e gives all ones until the end of the current object
-            quintptr result = objmask + 1;
+            size_t mask = (bit << 1) - 1; // create a mask of 1's to the right of and up to the current bit
+            size_t objmask = e | mask; // or'ing mask with e gives all ones until the end of the current object
+            size_t result = objmask + 1;
             Q_ASSERT(qCountTrailingZeroBits(result) - index != 0); // ensure we freed something
             result |= mask; // ensure we don't clear stuff to the right of the current object
             e &= result;
@@ -360,11 +364,7 @@ bool Chunk::sweep(ExecutionEngine *engine)
         grayBitmap[i] = 0;
         hasUsedSlots |= (blackBitmap[i] != 0);
         extendsBitmap[i] = e;
-#ifdef __CHERI_PURE_CAPABILITY__
-        lastSlotFree = !((objectBitmap[i]|extendsBitmap[i]) >> (sizeof(vaddr_t)*8 - 1));
-#else
-        lastSlotFree = !((objectBitmap[i]|extendsBitmap[i]) >> (sizeof(quintptr)*8 - 1));
-#endif
+        lastSlotFree = !((objectBitmap[i]|extendsBitmap[i]) >> (sizeof(qptrdiff)*8 - 1));
         SDUMP() << "        new extends =" << binary(e);
         SDUMP() << "        lastSlotFree" << lastSlotFree;
         Q_ASSERT((objectBitmap[i] & extendsBitmap[i]) == 0);
@@ -379,21 +379,21 @@ void Chunk::freeAll(ExecutionEngine *engine)
     //    DEBUG << "sweeping chunk" << this << (*freeList);
     HeapItem *o = realBase();
     for (uint i = 0; i < Chunk::EntriesInBitmap; ++i) {
-        quintptr toFree = objectBitmap[i];
-        quintptr e = extendsBitmap[i];
+        size_t toFree = objectBitmap[i];
+        size_t e = extendsBitmap[i];
         //        DEBUG << hex << "   index=" << i << toFree;
         while (toFree) {
             uint index = qCountTrailingZeroBits(toFree);
-            quintptr bit = (static_cast<quintptr>(1) << index);
+            size_t bit = (static_cast<size_t>(1) << index);
 
             toFree ^= bit; // mask out freed slot
             //            DEBUG << "       index" << hex << index << toFree;
 
             // remove all extends slots that have been freed
             // this is a bit of bit trickery.
-            quintptr mask = (bit << 1) - 1; // create a mask of 1's to the right of and up to the current bit
-            quintptr objmask = e | mask; // or'ing mask with e gives all ones until the end of the current object
-            quintptr result = objmask + 1;
+            size_t mask = (bit << 1) - 1; // create a mask of 1's to the right of and up to the current bit
+            size_t objmask = e | mask; // or'ing mask with e gives all ones until the end of the current object
+            size_t result = objmask + 1;
             Q_ASSERT(qCountTrailingZeroBits(result) - index != 0); // ensure we freed something
             result |= mask; // ensure we don't clear stuff to the right of the current object
             e &= result;
@@ -431,12 +431,12 @@ void Chunk::collectGrayItems(MarkStack *markStack)
 #if WRITEBARRIER(none)
         Q_ASSERT((grayBitmap[i] | blackBitmap[i]) == blackBitmap[i]); // check that we don't have gray only objects
 #endif
-        quintptr toMark = blackBitmap[i] & grayBitmap[i]; // correct for a Steele type barrier
+        size_t toMark = blackBitmap[i] & grayBitmap[i]; // correct for a Steele type barrier
         Q_ASSERT((toMark & objectBitmap[i]) == toMark); // check all black objects are marked as being used
         //        DEBUG << hex << "   index=" << i << toFree;
         while (toMark) {
             uint index = qCountTrailingZeroBits(toMark);
-            quintptr bit = (static_cast<quintptr>(1) << index);
+            size_t bit = (static_cast<size_t>(1) << index);
 
             toMark ^= bit; // mask out marked slot
             //            DEBUG << "       index" << hex << index << toFree;
@@ -467,10 +467,10 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
     uint allocatedSlots = 0;
 #endif
     for (int i = start; i < EntriesInBitmap; ++i) {
-        quintptr usedSlots = (objectBitmap[i]|extendsBitmap[i]);
+        size_t usedSlots = (objectBitmap[i]|extendsBitmap[i]);
 #if QT_POINTER_SIZE == 8 || QT_POINTER_SIZE == 16
         if (!i)
-            usedSlots |= (static_cast<quintptr>(1) << (HeaderSize/SlotSize)) - 1;
+            usedSlots |= (static_cast<size_t>(1) << (HeaderSize/SlotSize)) - 1;
 #endif
 #ifndef QT_NO_DEBUG
         allocatedSlots += qPopulationCount(usedSlots);
@@ -481,7 +481,7 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
             if (index == Bits)
                 break;
             uint freeStart = i*Bits + index;
-            usedSlots &= ~((static_cast<quintptr>(1) << index) - 1);
+            usedSlots &= ~((static_cast<size_t>(1) << index) - 1);
             while (!usedSlots) {
                 if (++i < EntriesInBitmap) {
                     usedSlots = (objectBitmap[i]|extendsBitmap[i]);
@@ -489,7 +489,7 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
                     Q_ASSERT(i == EntriesInBitmap);
                     // Overflows to 0 when counting trailing zeroes above in next iteration.
                     // Then, all the bits are zeroes and we break.
-                    usedSlots = std::numeric_limits<quintptr>::max();
+                    usedSlots = std::numeric_limits<size_t>::max();
                     break;
                 }
 #ifndef QT_NO_DEBUG
@@ -500,7 +500,7 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
             HeapItem *freeItem = base + freeStart;
 
             index = qCountTrailingZeroBits(usedSlots);
-            usedSlots |= (quintptr(1) << index) - 1;
+            usedSlots |= (size_t(1) << index) - 1;
             uint freeEnd = i*Bits + index;
             uint nSlots = freeEnd - freeStart;
 #ifndef QT_NO_DEBUG
@@ -515,7 +515,7 @@ void Chunk::sortIntoBins(HeapItem **bins, uint nBins)
         }
     }
 #ifndef QT_NO_DEBUG
-    Q_ASSERT(freeSlots + allocatedSlots == (EntriesInBitmap - start) * 8 * sizeof(quintptr));
+    Q_ASSERT(freeSlots + allocatedSlots == (EntriesInBitmap - start) * 8 * sizeof(size_t));
 #endif
 }
 

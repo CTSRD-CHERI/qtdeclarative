@@ -90,45 +90,31 @@ typedef void(*ClassDestroyStatsCallback)(const char *);
 struct HeapItem;
 struct Chunk {
     enum {
-        ChunkSize = 64*1024,
+        ChunkSize = 64 * 1024,
         ChunkShift = 16,
         SlotSize = 32,
         SlotSizeShift = 5,
-        NumSlots = ChunkSize/SlotSize,
-#ifndef __CHERI_PURE_CAPABILITY__
-        BitmapSize = NumSlots/8,
-#else
-#ifdef _VADDR_T_DECLARED
-        BitmapSize = (NumSlots/8)*(sizeof(uintptr_t)/sizeof(vaddr_t)), //uintptr_t only covers at most half what this thinks it will on cheri
-#else 
-        BitmapSize = (NumSlots/8)*2,
-#endif
-#endif
-        HeaderSize = 4*BitmapSize,
+        NumSlots = ChunkSize / SlotSize,
+        BitmapSize = NumSlots / 8,
+        HeaderSize = 4 * BitmapSize,
         DataSize = ChunkSize - HeaderSize,
-        AvailableSlots = DataSize/SlotSize,
-#if QT_POINTER_SIZE == 8
+        AvailableSlots = DataSize / SlotSize,
+#if Q_PROCESSOR_WORDSIZE == 8
         Bits = 64,
         BitShift = 6,
-#else
-#elif QT_POINTER_SIZE == 4
+#elif Q_PROCESSOR_WORDSIZE == 4
         Bits = 32,
         BitShift = 5,
-#elif QT_POINTER_SIZE == 16
-#ifdef __CHERI_PURE_CAPABILITY__
-        Bits = 64, //uintptr_t manipulations largely treat it as being a vaddr_t with cap sized alignment + storage
-        BitShift = 6,
-#else 
-        Bits = 128, 
-        BitShift = 7,
+#    error "Unsupported word size"
 #endif
-#endif
-        EntriesInBitmap = BitmapSize/sizeof(quintptr)
+        EntriesInBitmap = BitmapSize / sizeof(size_t)
     };
-    quintptr grayBitmap[BitmapSize/sizeof(quintptr)];
-    quintptr blackBitmap[BitmapSize/sizeof(quintptr)];
-    quintptr objectBitmap[BitmapSize/sizeof(quintptr)];
-    quintptr extendsBitmap[BitmapSize/sizeof(quintptr)];
+    static_assert(sizeof(size_t) == Q_PROCESSOR_WORDSIZE,
+                  "This code assumes Q_PROCESSOR_WORDSIZE == sizeof(size_t)");
+    size_t grayBitmap[BitmapSize / sizeof(size_t)];
+    size_t blackBitmap[BitmapSize / sizeof(size_t)];
+    size_t objectBitmap[BitmapSize / sizeof(size_t)];
+    size_t extendsBitmap[BitmapSize / sizeof(size_t)];
     char data[ChunkSize - HeaderSize];
 
     HeapItem *realBase();
@@ -137,37 +123,42 @@ struct Chunk {
     static Q_ALWAYS_INLINE size_t bitmapIndex(size_t index) {
         return index >> BitShift;
     }
-    static Q_ALWAYS_INLINE quintptr bitForIndex(size_t index) {
-        return static_cast<quintptr>(1) << (index & (Bits - 1));
+    static Q_ALWAYS_INLINE size_t bitForIndex(size_t index)
+    {
+        return static_cast<size_t>(1) << (index & (Bits - 1));
     }
 
-    static void setBit(quintptr *bitmap, size_t index) {
-//        Q_ASSERT(index >= HeaderSize/SlotSize && index < ChunkSize/SlotSize);
+    static void setBit(size_t *bitmap, size_t index)
+    {
+        //        Q_ASSERT(index >= HeaderSize/SlotSize && index < ChunkSize/SlotSize);
         bitmap += bitmapIndex(index);
-        quintptr bit = bitForIndex(index);
+        size_t bit = bitForIndex(index);
         *bitmap |= bit;
     }
-    static void clearBit(quintptr *bitmap, size_t index) {
-//        Q_ASSERT(index >= HeaderSize/SlotSize && index < ChunkSize/SlotSize);
+    static void clearBit(size_t *bitmap, size_t index)
+    {
+        //        Q_ASSERT(index >= HeaderSize/SlotSize && index < ChunkSize/SlotSize);
         bitmap += bitmapIndex(index);
-        quintptr bit = bitForIndex(index);
+        size_t bit = bitForIndex(index);
         *bitmap &= ~bit;
     }
-    static bool testBit(quintptr *bitmap, size_t index) {
-//        Q_ASSERT(index >= HeaderSize/SlotSize && index < ChunkSize/SlotSize);
+    static bool testBit(size_t *bitmap, size_t index)
+    {
+        //        Q_ASSERT(index >= HeaderSize/SlotSize && index < ChunkSize/SlotSize);
         bitmap += bitmapIndex(index);
-        quintptr bit = bitForIndex(index);
+        size_t bit = bitForIndex(index);
         return (*bitmap & bit);
     }
-    static void setBits(quintptr *bitmap, size_t index, size_t nBits) {
-//        Q_ASSERT(index >= HeaderSize/SlotSize && index + nBits <= ChunkSize/SlotSize);
+    static void setBits(size_t *bitmap, size_t index, size_t nBits)
+    {
+        //        Q_ASSERT(index >= HeaderSize/SlotSize && index + nBits <= ChunkSize/SlotSize);
         if (!nBits)
             return;
         bitmap += index >> BitShift;
         index &= (Bits - 1);
         while (1) {
             size_t bitsToSet = qMin(nBits, Bits - index);
-            quintptr mask = static_cast<quintptr>(-1) >> (Bits - bitsToSet) << index;
+            size_t mask = static_cast<size_t>(-1) >> (Bits - bitsToSet) << index;
             *bitmap |= mask;
             nBits -= bitsToSet;
             if (!nBits)
@@ -176,16 +167,18 @@ struct Chunk {
             ++bitmap;
         }
     }
-    static bool hasNonZeroBit(quintptr *bitmap) {
+    static bool hasNonZeroBit(size_t *bitmap)
+    {
         for (uint i = 0; i < EntriesInBitmap; ++i)
             if (bitmap[i])
                 return true;
         return false;
     }
-    static uint lowestNonZeroBit(quintptr *bitmap) {
+    static uint lowestNonZeroBit(size_t *bitmap)
+    {
         for (uint i = 0; i < EntriesInBitmap; ++i) {
             if (bitmap[i]) {
-                quintptr b = bitmap[i];
+                size_t b = bitmap[i];
                 return i*Bits + qCountTrailingZeroBits(b);
             }
         }
@@ -198,7 +191,7 @@ struct Chunk {
     uint nUsedSlots() const {
         uint usedSlots = 0;
         for (uint i = 0; i < EntriesInBitmap; ++i) {
-            quintptr used = objectBitmap[i] | extendsBitmap[i];
+            size_t used = objectBitmap[i] | extendsBitmap[i];
             usedSlots += qPopulationCount(used);
         }
         return usedSlots;
@@ -309,8 +302,8 @@ struct Q_QML_PRIVATE_EXPORT MarkStack {
 
         // If at or above soft limit, partition the remaining space into at most 64 segments and
         // allow one C++ recursion of drain() per segment, plus one for the fence post.
-        const quintptr segmentSize = qNextPowerOfTwo(quintptr(m_hardLimit - m_softLimit) / 64u);
-        if (m_drainRecursion * segmentSize <= quintptr(m_top - m_softLimit)) {
+        const size_t segmentSize = qNextPowerOfTwo(qint64(m_hardLimit - m_softLimit) / 64u);
+        if (m_drainRecursion * segmentSize <= size_t(m_top - m_softLimit)) {
             ++m_drainRecursion;
             drain();
             --m_drainRecursion;
@@ -331,7 +324,7 @@ private:
     Heap::Base **m_softLimit = nullptr;
     Heap::Base **m_hardLimit = nullptr;
     ExecutionEngine *m_engine = nullptr;
-    quintptr m_drainRecursion = 0;
+    size_t m_drainRecursion = 0;
 };
 
 // Some helper to automate the generation of our
