@@ -53,9 +53,8 @@ static size_t nextPowerOfTwo(size_t s)
     s |= s >> 4;
     s |= s >> 8;
     s |= s >> 16;
-#if (QT_POINTER_SIZE == 8)
+    if (sizeof(size_t) == 8)
         s |= s >> 32;
-#endif
     ++s;
     return s;
 }
