@@ -165,13 +165,13 @@ public:
     // bindingBitsValue. When we need more than sizeof(ptr) bits, we allocated
     // sufficient space and use bindingBits to point to it.
     quint32 bindingBitsArraySize : 16;
-    typedef quintptr BindingBitsType;
-    enum {
 #ifdef __CHERI_PURE_CAPABILITY__
-        BitsPerType = (sizeof(BindingBitsType) * 8) / 2, //uintptr_t is effectively 64-bits with 128-bit size requirements
+    typedef qvaddr BindingBitsType;
 #else
-        BitsPerType = sizeof(BindingBitsType) * 8,
+    typedef quintptr BindingBitsType;
 #endif
+    enum {
+        BitsPerType = sizeof(BindingBitsType) * 8,
         InlineBindingArraySize = 2
     };
     union {

@@ -71,7 +71,7 @@ private:
     // * If the key is a Symbol it simply points to the referenced symbol object
     // * if the key is an array index (a uint < UINT_MAX), it's encoded as an
     // integer value
-    quint64 val;
+    ReturnedValue val;
 
     // Important: Always keep this in sync with the definitions for Integers and heap objects in Value
     static const quint64 ArrayIndexMask = 0x3800000000000ull;
@@ -81,16 +81,16 @@ private:
     inline bool isManaged() const { return (val >> IsManagedOrUndefined_Shift) == 0; }
     inline quint32 value() const { return val & quint64(~quint32(0)); }
 
-#if QT_POINTER_SIZE == 8
+#if QT_POINTER_SIZE >= 8
     QML_NEARLY_ALWAYS_INLINE Heap::StringOrSymbol *m() const
     {
         Heap::StringOrSymbol *b;
-        memcpy(&b, &val, 8);
+        memcpy(&b, &val, sizeof(b));
         return b;
     }
     QML_NEARLY_ALWAYS_INLINE void setM(Heap::StringOrSymbol *b)
     {
-        memcpy(&val, &b, 8);
+        memcpy(&val, &b, sizeof(b));
     }
 #elif QT_POINTER_SIZE == 4
     QML_NEARLY_ALWAYS_INLINE Heap::StringOrSymbol *m() const

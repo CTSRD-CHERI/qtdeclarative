@@ -92,11 +92,13 @@ struct Q_QML_EXPORT EngineBase {
     MemoryManager *memoryManager = nullptr;
 
     qint32 callDepth = 0;
-    Value *jsStackLimit = nullptr;
-    Value *jsStackBase = nullptr;
-#if QT_POINTER_SIZE == 16
+#if QT_POINTER_SIZE == 8
+    quint32 padding2;
+#elif QT_POINTER_SIZE == 16
     quint8 padding2[12];
 #endif
+    Value *jsStackLimit = nullptr;
+    Value *jsStackBase = nullptr;
 
     IdentifierTable *identifierTable = nullptr;
     Object *globalObject = nullptr;
@@ -151,7 +153,10 @@ Q_STATIC_ASSERT(std::is_standard_layout<EngineBase>::value);
 Q_STATIC_ASSERT(offsetof(EngineBase, currentStackFrame) == 0);
 Q_STATIC_ASSERT(offsetof(EngineBase, jsStackTop) == offsetof(EngineBase, currentStackFrame) + QT_POINTER_SIZE);
 Q_STATIC_ASSERT(offsetof(EngineBase, hasException) == offsetof(EngineBase, jsStackTop) + QT_POINTER_SIZE);
-Q_STATIC_ASSERT(offsetof(EngineBase, memoryManager) == offsetof(EngineBase, hasException) + 8);
+Q_STATIC_ASSERT(offsetof(EngineBase, memoryManager) == offsetof(EngineBase, hasException) + QT_POINTER_SIZE);
+Q_STATIC_ASSERT(offsetof(EngineBase, jsStackLimit) % QT_POINTER_SIZE == 0);
+Q_STATIC_ASSERT(offsetof(EngineBase, exceptionValue) % QT_POINTER_SIZE == 0);
+Q_STATIC_ASSERT(offsetof(EngineBase, classes) % QT_POINTER_SIZE == 0);
 Q_STATIC_ASSERT(offsetof(EngineBase, isInterrupted) + sizeof(EngineBase::isInterrupted) <= offsetof(EngineBase, hasException) + 4);
 
 }

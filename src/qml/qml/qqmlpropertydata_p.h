@@ -428,9 +428,6 @@ private:
     Q_STATIC_ASSERT(sizeof(QQmlPropertyData) == 32);
 #endif
 
-#else // QT_POINTER_SIZE == 8
-    Q_STATIC_ASSERT(sizeof(QQmlPropertyData) == 32);
-#endif
 
 bool QQmlPropertyData::operator==(const QQmlPropertyData &other) const
 {

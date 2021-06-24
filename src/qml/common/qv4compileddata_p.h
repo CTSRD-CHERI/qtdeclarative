@@ -210,6 +210,10 @@ struct String
     quint32_le allocAndCapacityReservedFlag; // 0
     quint32_le offsetOn32Bit;
     quint64_le offsetOn64Bit;
+#if defined(__CHERI_PURE_CAPABILITY__) && Q_BYTE_ORDER == Q_BIG_ENDIAN
+#error "Probably does not work on big endian systems"
+#endif
+
     // uint16 strdata[]
 
     static int calculateSize(const QString &str) {
@@ -223,7 +227,9 @@ static_assert(offsetof(QArrayData, ref) == offsetof(String, refcount), "refcount
 static_assert(offsetof(QArrayData, size) == offsetof(String, size), "size must be at the same location");
 static_assert(offsetof(String, offsetOn64Bit) == 16, "offset must be at 8-byte aligned location");
 static_assert(offsetof(String, offsetOn32Bit) == 12, "offset must be at 4-byte aligned location");
-#if QT_POINTER_SIZE == 8
+#ifdef __CHERI_PURE_CAPABILITY__
+static_assert(offsetof(QArrayData, _internal_cheri_offset) == offsetof(String, offsetOn64Bit), "offset must be at the same location");
+#elif QT_POINTER_SIZE == 8
 static_assert(offsetof(QArrayData, offset) == offsetof(String, offsetOn64Bit), "offset must be at the same location");
 #else
 static_assert(offsetof(QArrayData, offset) == offsetof(String, offsetOn32Bit), "offset must be at the same location");

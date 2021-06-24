@@ -80,7 +80,7 @@ struct Q_QML_PRIVATE_EXPORT Value : public StaticValue
     using ManagedPtr = Managed *;
 
     Value() = default;
-    constexpr Value(quint64 val) : StaticValue(val) {}
+    constexpr Value(ReturnedValue val) : StaticValue(val) {}
 
     static constexpr Value fromStaticValue(StaticValue staticValue)
     {
@@ -504,7 +504,7 @@ struct ValueArray {
     static Q_CONSTEXPR size_t offset = o;
     uint size;
     uint alloc;
-    Value values[1];
+    alignas(16) Value values[1];
 
     Value::HeapBasePtr base() {
         Value::HeapBasePtr base = reinterpret_cast<Value::HeapBasePtr>(this)
@@ -549,7 +549,7 @@ struct ValueArray {
 // It's really important that the offset of values in this structure is
 // constant across all architecture,  otherwise JIT cross-compiled code will
 // have wrong offsets between host and target.
-Q_STATIC_ASSERT(offsetof(ValueArray<0>, values) == 8);
+Q_STATIC_ASSERT(offsetof(ValueArray<0>, values) == 16);
 
 class OptionalReturnedValue {
     ReturnedValue value;
