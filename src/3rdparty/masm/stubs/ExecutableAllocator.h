@@ -111,7 +111,7 @@ struct ExecutableAllocator {
 
     static void makeWritable(void* addr, size_t size)
     {
-        quintptr pageSize = WTF::pageSize();
+        size_t pageSize = WTF::pageSize();
         quintptr iaddr = reinterpret_cast<quintptr>(addr);
         quintptr roundAddr = iaddr & ~(pageSize - 1);
         size = size + (iaddr - roundAddr);
@@ -151,7 +151,7 @@ struct ExecutableAllocator {
 
     static void makeExecutable(void* addr, size_t size)
     {
-        quintptr pageSize = WTF::pageSize();
+        size_t pageSize = WTF::pageSize();
         quintptr iaddr = reinterpret_cast<quintptr>(addr);
         quintptr roundAddr = iaddr & ~(pageSize - 1);
         size = size + (iaddr - roundAddr);
