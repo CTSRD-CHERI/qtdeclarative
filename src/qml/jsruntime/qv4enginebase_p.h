@@ -64,8 +64,8 @@ struct CppStackFrame;
 #if defined(Q_CC_MSVC) || defined(Q_CC_GNU)
 #pragma pack(push, 1)
 #endif
-struct Q_QML_EXPORT EngineBase {
-
+struct Q_QML_EXPORT alignas(void *) EngineBase
+{
     CppStackFrame *currentStackFrame = nullptr;
 
     Value *jsStackTop = nullptr;
