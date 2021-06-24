@@ -148,6 +148,16 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
     int fd = memfdForUsage(bytes, usage);
     if (fd != -1)
         flags &= ~MAP_ANON;
+#elif OS(FREEBSD)
+    // In order to allow changing pages between RW/RX, we need to specify PROT_MAX() on
+    // recent versions of FreeBSD.
+    int fd = -1;
+#ifdef PROT_MAX
+    if (usage == JSJITCodePages)
+        protection |= PROT_MAX(PROT_READ | PROT_WRITE | PROT_EXEC);
+#else
+    UNUSED_PARAM(usage);
+#endif
 #else
     UNUSED_PARAM(usage);
     int fd = -1;

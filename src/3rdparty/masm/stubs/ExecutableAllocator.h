@@ -132,6 +132,11 @@ struct ExecutableAllocator {
          OSAllocator::setMemoryAttributes(addr, size, /*writable*/ true, /*executable*/ false);
 #  else
         int mode = PROT_READ | PROT_WRITE;
+        // On recent versions of FreeBSD, we have to pass PROT_MAX() to allow
+        // changing a writable mapping to an executable one later.
+#ifdef PROT_MAX
+        mode |= PROT_MAX(PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
         if (mprotect(addr, size, mode) != 0) {
             perror("mprotect failed in ExecutableAllocator::makeWritable");
             Q_UNREACHABLE();
@@ -168,6 +173,11 @@ struct ExecutableAllocator {
         OSAllocator::setMemoryAttributes(addr, size, /*writable*/ false, /*executable*/ true);
 #  else
         int mode = PROT_READ | PROT_EXEC;
+        // On recent versions of FreeBSD, we have to pass PROT_MAX() to allow
+        // changing a writable mapping to an executable one later.
+#ifdef PROT_MAX
+        mode |= PROT_MAX(PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
         if (mprotect(addr, size, mode) != 0) {
             perror("mprotect failed in ExecutableAllocator::makeExecutable");
             Q_UNREACHABLE();
