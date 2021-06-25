@@ -252,7 +252,7 @@ public:
         }
 
         if (subtype)
-            *subtype = (charToUInt(ch) == '@') ? Heap::StringOrSymbol::StringType_Symbol : Heap::StringOrSymbol::StringType_Regular;
+            *subtype = (ch != end && charToUInt(ch) == '@') ? Heap::StringOrSymbol::StringType_Symbol : Heap::StringOrSymbol::StringType_Regular;
         return h;
     }
 };
