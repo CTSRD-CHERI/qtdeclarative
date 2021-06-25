@@ -90,7 +90,7 @@ Page *allocatePage(PersistentValueStorage *storage)
     PageAllocation page = WTF::PageAllocation::allocate(WTF::pageSize());
     Page *p = reinterpret_cast<Page *>(page.base());
 
-    Q_ASSERT(!((quintptr)p & (WTF::pageSize() - 1)));
+    Q_ASSERT(WTF::isPageAligned(p));
 
     p->header.engine = storage->engine;
     p->header.alloc = page;

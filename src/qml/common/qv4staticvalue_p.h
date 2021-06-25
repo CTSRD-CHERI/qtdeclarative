@@ -208,8 +208,8 @@ struct StaticValue
 #endif
     static inline constexpr quint64 tagValue(quint32 tag, quint32 value) { return quint64(tag) << 32 | value; }
     QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR void setTagValue(quint32 tag, quint32 value) { _val = quint64(tag) << 32 | value; }
-    QV4_NEARLY_ALWAYS_INLINE constexpr quint32 value() const { return _val & quint64(~quint32(0)); }
-    QV4_NEARLY_ALWAYS_INLINE constexpr quint32 tag() const { return _val >> 32; }
+    QV4_NEARLY_ALWAYS_INLINE constexpr quint32 value() const { return quint64(_val) & quint64(~quint32(0)); }
+    QV4_NEARLY_ALWAYS_INLINE constexpr quint32 tag() const { return quint64(_val) >> 32; }
     QV4_NEARLY_ALWAYS_INLINE Q_DECL_RELAXED_CONSTEXPR void setTag(quint32 tag) { setTagValue(tag, value()); }
 
     QV4_NEARLY_ALWAYS_INLINE constexpr int int_32() const
@@ -309,7 +309,7 @@ struct StaticValue
         NaN_Mask = 0x7ff80000,
     };
 
-    inline quint64 quickType() const { return (_val >> QuickType_Shift); }
+    inline quint64 quickType() const { return (quint64(_val) >> QuickType_Shift); }
 
     // used internally in property
     inline bool isEmpty() const { return tag() == quint32(ValueTypeInternal::Empty); }
@@ -320,13 +320,13 @@ struct StaticValue
     inline bool isNumber() const { return quickType() >= QT_Int; }
 
     inline bool isUndefined() const { return _val == 0; }
-    inline bool isDouble() const { return (_val >> IsDouble_Shift); }
+    inline bool isDouble() const { return (quint64(_val) >> IsDouble_Shift); }
     inline bool isManaged() const
     {
 #if QT_POINTER_SIZE == 4
         return value() && tag() == Managed_Type_Internal;
 #else
-        return _val && ((_val >> IsManagedOrUndefined_Shift) == 0);
+        return _val && ((quint64(_val) >> IsManagedOrUndefined_Shift) == 0);
 #endif
     }
     inline bool isManagedOrUndefined() const
@@ -334,17 +334,17 @@ struct StaticValue
 #if QT_POINTER_SIZE == 4
         return tag() == Managed_Type_Internal;
 #else
-        return ((_val >> IsManagedOrUndefined_Shift) == 0);
+        return ((quint64(_val) >> IsManagedOrUndefined_Shift) == 0);
 #endif
     }
 
     inline bool isIntOrBool() const {
-        return (_val >> IsIntegerOrBool_Shift) == 3;
+        return (quint64(_val) >> IsIntegerOrBool_Shift) == 3;
     }
 
     inline bool integerCompatible() const {
         Q_ASSERT(!isEmpty());
-        return (_val >> IsIntegerConvertible_Shift) == 1;
+        return (quint64(_val) >> IsIntegerConvertible_Shift) == 1;
     }
 
     static inline bool integerCompatible(StaticValue a, StaticValue b) {
@@ -364,7 +364,7 @@ struct StaticValue
 #if QT_POINTER_SIZE == 4
         return isInteger() && int_32() >= 0;
 #else
-        return (_val >> IsPositiveIntShift) == (quint64(ValueTypeInternal::Integer) << 1);
+        return (quint64(_val) >> IsPositiveIntShift) == (quint64(ValueTypeInternal::Integer) << 1);
 #endif
     }
 

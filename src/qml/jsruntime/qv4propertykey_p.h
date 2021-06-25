@@ -79,8 +79,8 @@ private:
     enum {
         IsManagedOrUndefined_Shift = 64-15,
     };
-    inline bool isManaged() const { return (val >> IsManagedOrUndefined_Shift) == 0; }
-    inline quint32 value() const { return val & quint64(~quint32(0)); }
+    inline bool isManaged() const { return (quint64(val) >> IsManagedOrUndefined_Shift) == 0; }
+    inline quint32 value() const { return quint64(val) & quint64(~quint32(0)); }
 
 #if QT_POINTER_SIZE >= 8
     QML_NEARLY_ALWAYS_INLINE Heap::StringOrSymbol *m() const
@@ -114,7 +114,7 @@ public:
     static PropertyKey invalid() { PropertyKey key; key.val = 0; return key; }
     static PropertyKey fromArrayIndex(uint idx) { PropertyKey key; key.val = ArrayIndexMask | static_cast<quint64>(idx); return key; }
     bool isStringOrSymbol() const { return isManaged() && val != 0; }
-    uint asArrayIndex() const { Q_ASSERT(isArrayIndex()); return static_cast<uint>(val & 0xffffffff); }
+    uint asArrayIndex() const { Q_ASSERT(isArrayIndex()); return static_cast<uint>(val) & 0xffffffff; }
     uint isArrayIndex() const { return !isManaged() && val != 0; }
     bool isValid() const { return val != 0; }
     static PropertyKey fromStringOrSymbol(Heap::StringOrSymbol *b)
