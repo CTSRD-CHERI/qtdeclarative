@@ -172,7 +172,12 @@ void Lexer::scanChar()
         ++_codePtr;
         _skipLinefeed = false;
     }
-    _char = *_codePtr++;
+    if (_codePtr == _endPtr) {
+        _char = QChar();
+    } else {
+        _char = *_codePtr;
+    }
+    _codePtr++;
     ++_currentColumnNumber;
 
     if (isLineTerminator()) {
