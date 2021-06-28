@@ -153,7 +153,11 @@ public:
     QT_DEPRECATED QJSEngine *engine() const;
 #endif
 
+#if QT_POINTER_SIZE < 4
     QJSValue(QV4::ExecutionEngine *e, quint64 val);
+#else
+    QJSValue(QV4::ExecutionEngine *e, quintptr val);
+#endif
 private:
     friend class QJSValuePrivate;
     // force compile error, prevent QJSValue(bool) to be called

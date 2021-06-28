@@ -199,7 +199,11 @@ QJSValue::QJSValue(bool value)
 /*!
   \internal
 */
+#if QT_POINTER_SIZE < 4
 QJSValue::QJSValue(ExecutionEngine *e, quint64 val)
+#else
+QJSValue::QJSValue(ExecutionEngine *e, quintptr val)
+#endif
 {
     QJSValuePrivate::setValue(this, e, val);
 }
