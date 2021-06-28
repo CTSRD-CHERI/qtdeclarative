@@ -123,7 +123,15 @@ struct Double {
 struct StaticValue
 {
     StaticValue() = default;
-    constexpr StaticValue(ReturnedValue val) : _val(val) {}
+    constexpr StaticValue(ReturnedValue val) : _val(val)
+    {
+#ifdef __CHERI_PURE_CAPABILITY__
+        if (!__builtin_is_constant_evaluated()) {
+            if (isManaged())
+                Q_ASSERT(__builtin_cheri_tag_get(_val));
+        }
+#endif
+    }
 
     StaticValue &operator=(ReturnedValue v)
     {
