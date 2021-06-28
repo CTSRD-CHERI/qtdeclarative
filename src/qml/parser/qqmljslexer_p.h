@@ -190,7 +190,7 @@ protected:
     static int classify(const QChar *s, int n, int parseModeFlags);
 
 private:
-    inline void scanChar();
+    void scanChar();
     int scanToken();
     int scanNumber(QChar ch);
     int scanVersionNumber(QChar ch);
