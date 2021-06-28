@@ -787,6 +787,9 @@ void tst_QJSEngine::newQObject()
 
 void tst_QJSEngine::newQObjectRace()
 {
+#ifdef __CHERI_PURE_CAPABILITY__
+    QSKIP("takes too long on CHERI QEMU");
+#endif
     class Thread : public QThread
     {
         void run() override
