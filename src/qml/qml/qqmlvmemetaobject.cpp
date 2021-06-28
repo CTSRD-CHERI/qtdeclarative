@@ -73,10 +73,10 @@ public:
     ResolvedList(QQmlListProperty<QObject> *prop)
     {
         // see QQmlVMEMetaObject::metaCall for how this was constructed
-        auto encodedIndex = qvaddr(prop->data);
-        qvaddr usableBits = sizeof(qvaddr)  * CHAR_BIT;
-        qvaddr inheritanceDepth = encodedIndex >> (usableBits / 2);
-        m_id = encodedIndex & ((qvaddr(1) << (usableBits / 2)) - 1);
+        auto encodedIndex = qptraddr(prop->data);
+        qptraddr usableBits = sizeof(qptraddr)  * CHAR_BIT;
+        qptraddr inheritanceDepth = encodedIndex >> (usableBits / 2);
+        m_id = encodedIndex & ((qptraddr(1) << (usableBits / 2)) - 1);
 
         // walk up to the correct meta object if necessary
         auto mo = prop->object->metaObject();
@@ -110,7 +110,7 @@ public:
 
     QQmlVMEMetaObject *metaObject() const { return m_metaObject; }
     QVector<QQmlGuard<QObject>> *list() const { return m_list; }
-    qvaddr id() const { return m_id; }
+    qptraddr id() const { return m_id; }
 
     void activateSignal() const
     {
@@ -121,7 +121,7 @@ public:
 private:
     QQmlVMEMetaObject *m_metaObject = nullptr;
     QVector<QQmlGuard<QObject>> *m_list = nullptr;
-    qvaddr m_id = 0;
+    qptraddr m_id = 0;
 };
 
 static void list_append(QQmlListProperty<QObject> *prop, QObject *o)
@@ -772,16 +772,16 @@ int QQmlVMEMetaObject::metaCall(QObject *o, QMetaObject::Call c, int _id, void *
                                 mo = mo->superClass();
                                 ++inheritanceDepth;
                             }
-                            constexpr qvaddr usableBits = sizeof(qvaddr)  * CHAR_BIT;
-                            if (Q_UNLIKELY(inheritanceDepth >= (qvaddr(1) << qvaddr(usableBits / 2u) ) )) {
+                            constexpr qptraddr usableBits = sizeof(qptraddr)  * CHAR_BIT;
+                            if (Q_UNLIKELY(inheritanceDepth >= (qptraddr(1) << qptraddr(usableBits / 2u) ) )) {
                                 qmlWarning(object) << "Too many objects in inheritance hierarchy for list property";
                                 return -1;
                             }
-                            if (Q_UNLIKELY(qvaddr(id) >= (qvaddr(1) << qvaddr(usableBits / 2) ) )) {
+                            if (Q_UNLIKELY(qptraddr(id) >= (qptraddr(1) << qptraddr(usableBits / 2) ) )) {
                                 qmlWarning(object) << "Too many properties in object for list property";
                                 return -1;
                             }
-                            qvaddr encodedIndex = (inheritanceDepth << (usableBits/2)) + id;
+                            qptraddr encodedIndex = (inheritanceDepth << (usableBits/2)) + id;
 
 
                             readPropertyAsList(id); // Initializes if necessary

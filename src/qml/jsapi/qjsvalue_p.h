@@ -69,14 +69,14 @@ class Q_AUTOTEST_EXPORT QJSValuePrivate
 public:
     static inline QV4::Value *getValue(const QJSValue *jsval)
     {
-        if (qvaddr(jsval->d) & 3)
+        if (qptraddr(jsval->d) & 3)
             return nullptr;
         return reinterpret_cast<QV4::Value *>(jsval->d);
     }
 
     static inline QVariant *getVariant(const QJSValue *jsval)
     {
-        if (qvaddr(jsval->d) & 1)
+        if (qptraddr(jsval->d) & 1)
             return reinterpret_cast<QVariant *>(jsval->d & ~3);
         return nullptr;
     }

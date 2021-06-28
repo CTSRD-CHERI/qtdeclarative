@@ -166,7 +166,7 @@ public:
     // sufficient space and use bindingBits to point to it.
     quint32 bindingBitsArraySize : 16;
 #ifdef __CHERI_PURE_CAPABILITY__
-    typedef qvaddr BindingBitsType;
+    typedef qptraddr BindingBitsType;
 #else
     typedef quintptr BindingBitsType;
 #endif
