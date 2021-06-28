@@ -515,7 +515,7 @@ public:
                 if (checkCharacter(term.atom.patternCharacter, term.inputPosition + 1))
                     return true;
             }
-            input.setPos(backTrack->begin);
+            input.setPos(static_cast<unsigned>(backTrack->begin));
             break;
         }
 
@@ -544,7 +544,7 @@ public:
                 if (checkCasedCharacter(term.atom.casedCharacter.lo, term.atom.casedCharacter.hi, term.inputPosition + 1))
                     return true;
             }
-            input.uncheckInput(backTrack->matchAmount);
+            input.uncheckInput(static_cast<unsigned>(backTrack->matchAmount));
             break;
         }
 
@@ -563,7 +563,7 @@ public:
                 unsigned matchAmount = 0;
                 for (matchAmount = 0; matchAmount < term.atom.quantityMaxCount; ++matchAmount) {
                     if (!checkCharacterClass(term.atom.characterClass, term.invert(), term.inputPosition - matchAmount)) {
-                        input.setPos(backTrack->begin);
+                        input.setPos(static_cast<unsigned>(backTrack->begin));
                         return false;
                     }
                 }
@@ -613,14 +613,14 @@ public:
         switch (term.atom.quantityType) {
         case QuantifierFixedCount:
             if (unicode)
-                input.setPos(backTrack->begin);
+                input.setPos(static_cast<unsigned>(backTrack->begin));
             break;
 
         case QuantifierGreedy:
             if (backTrack->matchAmount) {
                 if (unicode) {
                     // Rematch one less match
-                    input.setPos(backTrack->begin);
+                    input.setPos(static_cast<unsigned>(backTrack->begin));
                     --backTrack->matchAmount;
                     for (unsigned matchAmount = 0; (matchAmount < backTrack->matchAmount) && input.checkInput(1); ++matchAmount) {
                         if (!checkCharacterClass(term.atom.characterClass, term.invert(), term.inputPosition + 1)) {
@@ -642,7 +642,7 @@ public:
                 if (checkCharacterClass(term.atom.characterClass, term.invert(), term.inputPosition + 1))
                     return true;
             }
-            input.setPos(backTrack->begin);
+            input.setPos(static_cast<unsigned>(backTrack->begin));
             break;
         }
 
@@ -676,7 +676,7 @@ public:
             backTrack->begin = input.getPos();
             for (unsigned matchAmount = 0; matchAmount < term.atom.quantityMaxCount; ++matchAmount) {
                 if (!tryConsumeBackReference(matchBegin, matchEnd, term.inputPosition)) {
-                    input.setPos(backTrack->begin);
+                    input.setPos(static_cast<unsigned>(backTrack->begin));
                     return false;
                 }
             }
@@ -720,7 +720,7 @@ public:
         switch (term.atom.quantityType) {
         case QuantifierFixedCount:
             // for quantityMaxCount == 1, could rewind.
-            input.setPos(backTrack->begin);
+            input.setPos(static_cast<unsigned>(backTrack->begin));
             break;
 
         case QuantifierGreedy:
@@ -736,7 +736,7 @@ public:
                 ++backTrack->matchAmount;
                 return true;
             }
-            input.setPos(backTrack->begin);
+            input.setPos(static_cast<unsigned>(backTrack->begin));
             break;
         }
 
@@ -956,7 +956,7 @@ public:
 
         BackTrackInfoParentheticalAssertion* backTrack = reinterpret_cast<BackTrackInfoParentheticalAssertion*>(context->frame + term.frameLocation);
 
-        input.setPos(backTrack->begin);
+        input.setPos(static_cast<unsigned>(backTrack->begin));
 
         // We've reached the end of the parens; if they are inverted, this is failure.
         if (term.invert()) {
@@ -988,7 +988,7 @@ public:
 
         BackTrackInfoParentheticalAssertion* backTrack = reinterpret_cast<BackTrackInfoParentheticalAssertion*>(context->frame + term.frameLocation);
 
-        input.setPos(backTrack->begin);
+        input.setPos(static_cast<unsigned>(backTrack->begin));
 
         context->term -= term.atom.parenthesesWidth;
         return false;
@@ -1506,7 +1506,7 @@ public:
         case ByteTerm::TypeAlternativeEnd: {
             // We should never backtrack back into an alternative of the main body of the regex.
             BackTrackInfoAlternative* backTrack = reinterpret_cast<BackTrackInfoAlternative*>(context->frame + currentTerm().frameLocation);
-            unsigned offset = backTrack->offset;
+            unsigned offset = static_cast<unsigned>(backTrack->offset);
             context->term -= offset;
             BACKTRACK();
         }

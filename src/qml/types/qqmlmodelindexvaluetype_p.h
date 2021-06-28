@@ -65,7 +65,7 @@ struct QQmlModelIndexValueType
     Q_PROPERTY(QModelIndex parent READ parent FINAL)
     Q_PROPERTY(bool valid READ isValid CONSTANT FINAL)
     Q_PROPERTY(QAbstractItemModel *model READ model CONSTANT FINAL)
-    Q_PROPERTY(quint64 internalId READ internalId CONSTANT FINAL)
+    Q_PROPERTY(quintptr internalId READ internalId CONSTANT FINAL)
     Q_GADGET
 
 public:
@@ -78,7 +78,7 @@ public:
     inline bool isValid() const Q_DECL_NOTHROW { return v.isValid(); }
     inline QAbstractItemModel *model() const Q_DECL_NOTHROW
     { return const_cast<QAbstractItemModel *>(v.model()); }
-    quint64 internalId() const { return v.internalId(); }
+    quintptr internalId() const { return v.internalId(); }
 
     static QString propertiesString(const QModelIndex &idx);
 
@@ -95,7 +95,7 @@ struct QQmlPersistentModelIndexValueType
     Q_PROPERTY(QModelIndex parent READ parent FINAL)
     Q_PROPERTY(bool valid READ isValid FINAL)
     Q_PROPERTY(QAbstractItemModel *model READ model FINAL)
-    Q_PROPERTY(quint64 internalId READ internalId FINAL)
+    Q_PROPERTY(quintptr internalId READ internalId FINAL)
     Q_GADGET
 
 public:
@@ -107,7 +107,7 @@ public:
     inline QModelIndex parent() const { return v.parent(); }
     inline bool isValid() const { return v.isValid(); }
     inline QAbstractItemModel *model() const { return const_cast<QAbstractItemModel *>(v.model()); }
-    inline quint64 internalId() const { return v.internalId(); }
+    inline quintptr internalId() const { return v.internalId(); }
 
     static const QModelIndex &toModelIndex(const QPersistentModelIndex &index)
     { return index; }

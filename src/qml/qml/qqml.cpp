@@ -309,7 +309,7 @@ void QQmlPrivate::qmlunregister(RegistrationType type, quintptr data)
     case SingletonRegistration:
     case CompositeRegistration:
     case CompositeSingletonRegistration:
-        QQmlMetaType::unregisterType(data);
+        QQmlMetaType::unregisterType(static_cast<int>(data));
         break;
     case TypeAndRevisionsRegistration:
     case SingletonAndRevisionsRegistration:

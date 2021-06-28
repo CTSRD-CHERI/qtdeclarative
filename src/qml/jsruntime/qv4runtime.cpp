@@ -330,7 +330,7 @@ Bool Runtime::DeleteProperty_NoThrow::call(ExecutionEngine *engine, const Value 
     Scope scope(engine);
     ScopedObject o(scope, base.toObject(engine));
     if (scope.engine->hasException)
-        return Encode::undefined();
+        return static_cast<Bool>(Encode::undefined());
     Q_ASSERT(o);
 
     ScopedPropertyKey key(scope, index.toPropertyKey(engine));

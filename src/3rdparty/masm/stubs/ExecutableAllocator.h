@@ -114,7 +114,7 @@ struct ExecutableAllocator {
         size_t pageSize = WTF::pageSize();
         quintptr iaddr = reinterpret_cast<quintptr>(addr);
         quintptr roundAddr = iaddr & ~(pageSize - 1);
-        size = size + (iaddr - roundAddr);
+        size = size + (size_t(iaddr) - size_t(roundAddr));
         addr = reinterpret_cast<void*>(roundAddr);
 
 #if ENABLE(ASSEMBLER_WX_EXCLUSIVE) && !defined(V4_BOOTSTRAP)
@@ -154,7 +154,7 @@ struct ExecutableAllocator {
         size_t pageSize = WTF::pageSize();
         quintptr iaddr = reinterpret_cast<quintptr>(addr);
         quintptr roundAddr = iaddr & ~(pageSize - 1);
-        size = size + (iaddr - roundAddr);
+        size = size + (size_t(iaddr) - size_t(roundAddr));
         addr = reinterpret_cast<void*>(roundAddr);
 
 #if !defined(V4_BOOTSTRAP)
