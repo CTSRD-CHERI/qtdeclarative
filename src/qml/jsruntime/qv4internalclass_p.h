@@ -138,7 +138,7 @@ inline PropertyHash::Entry *PropertyHash::lookup(PropertyKey identifier) const
 {
     Q_ASSERT(d->entries);
 
-    uint idx = identifier.id() % d->alloc;
+    uint idx = uint(identifier.id()) % d->alloc;
     while (1) {
         if (d->entries[idx].identifier == identifier)
             return d->entries + idx;

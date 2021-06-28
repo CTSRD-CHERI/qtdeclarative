@@ -107,7 +107,7 @@ IdentifierHashEntry *IdentifierHash::addEntry(PropertyKey identifier)
             const IdentifierHashEntry &e = d->entries[i];
             if (!e.identifier.isValid())
                 continue;
-            uint idx = e.identifier.id() % newAlloc;
+            uint idx = uint(e.identifier.id()) % newAlloc;
             while (newEntries[idx].identifier.isValid()) {
                 ++idx;
                 idx %= newAlloc;
@@ -119,7 +119,7 @@ IdentifierHashEntry *IdentifierHash::addEntry(PropertyKey identifier)
         d->alloc = newAlloc;
     }
 
-    uint idx = identifier.id() % d->alloc;
+    uint idx = uint(identifier.id()) % d->alloc;
     while (d->entries[idx].identifier.isValid()) {
         Q_ASSERT(d->entries[idx].identifier != identifier);
         ++idx;
@@ -136,7 +136,7 @@ const IdentifierHashEntry *IdentifierHash::lookup(PropertyKey identifier) const
         return nullptr;
     Q_ASSERT(d->entries);
 
-    uint idx = identifier.id() % d->alloc;
+    uint idx = uint(identifier.id()) % d->alloc;
     while (1) {
         if (!d->entries[idx].identifier.isValid())
             return nullptr;

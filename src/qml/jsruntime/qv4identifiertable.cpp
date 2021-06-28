@@ -100,7 +100,7 @@ void IdentifierTable::addEntry(Heap::StringOrSymbol *str)
             Heap::StringOrSymbol *e = entriesById[i];
             if (!e)
                 continue;
-            uint idx = e->identifier.id() % newAlloc;
+            uint idx = uint(e->identifier.id()) % newAlloc;
             while (newEntries[idx]) {
                 ++idx;
                 idx %= newAlloc;
@@ -120,7 +120,7 @@ void IdentifierTable::addEntry(Heap::StringOrSymbol *str)
     }
     entriesByHash[idx] = str;
 
-    idx = str->identifier.id() % alloc;
+    idx = quint64(str->identifier.id()) % alloc;
     while (entriesById[idx]) {
         ++idx;
         idx %= alloc;
@@ -211,7 +211,7 @@ Heap::StringOrSymbol *IdentifierTable::resolveId(PropertyKey i) const
     if (!i.isValid())
         return nullptr;
 
-    uint idx = i.id() % alloc;
+    uint idx = uint(i.id()) % alloc;
     while (1) {
         Heap::StringOrSymbol *e = entriesById[idx];
         if (!e || e->identifier == i)
@@ -264,7 +264,7 @@ void IdentifierTable::sweep()
         }
         newTable[idx] = e;
 
-        idx = e->identifier.id() % alloc;
+        idx = uint(e->identifier.id()) % alloc;
         while (entriesById[idx]) {
             ++idx;
             if (idx == alloc)
