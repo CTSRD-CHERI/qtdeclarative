@@ -107,7 +107,8 @@ void QV4::Compiler::StringTableGenerator::serialize(CompiledData::Unit *unit)
         const QString &qstr = strings.at(i);
 
         QV4::CompiledData::String *s = reinterpret_cast<QV4::CompiledData::String *>(stringData);
-        Q_ASSERT(reinterpret_cast<uintptr_t>(s) % alignof(QV4::CompiledData::String) == 0);
+
+        Q_ASSERT(qIsAligned(s, alignof(QV4::CompiledData::String)));
         s->refcount = -1;
         s->size = qstr.length();
         s->allocAndCapacityReservedFlag = 0;
