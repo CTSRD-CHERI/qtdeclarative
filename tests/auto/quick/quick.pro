@@ -1,5 +1,9 @@
 TEMPLATE = subdirs
 
+include($$OUT_PWD/qml/qtqml-config.pri)
+include($$OUT_PWD/quick/qtquick-config.pri)
+QT_FOR_CONFIG += qml qml-private quick-private
+
 PUBLICTESTS += \
     geometry \
     qquickpixmapcache
@@ -99,6 +103,8 @@ SUBDIRS += $$PUBLICTESTS
 boot2qt: QUICKTESTS -= qquickgridview qquicklistview qquicktableview qquickpositioners
 
 !qtConfig(accessibility):QUICKTESTS -= qquickaccessible
+
+!qtConfig(quick-designer):QUICKTESTS -= qquickdesignersupport
 
 !qtConfig(shortcut):QUICKTESTS -= qquickshortcut
 

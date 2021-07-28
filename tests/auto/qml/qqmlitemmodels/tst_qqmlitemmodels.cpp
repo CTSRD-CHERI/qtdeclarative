@@ -79,7 +79,7 @@ void tst_qqmlitemmodels::modelIndex()
         QCOMPARE(object->property("column").toInt(), index.column());
         QCOMPARE(object->property("parent").toModelIndex(), index.parent());
         QCOMPARE(object->property("model").value<QAbstractItemModel *>(), index.model());
-        QCOMPARE(object->property("internalId").toULongLong(), index.internalId());
+        QCOMPARE(object->property("internalId").value<quintptr>(), index.internalId());
 
         if (i < 3) {
             index = model.index(2 + i, 4 - i, index);
@@ -103,7 +103,7 @@ void tst_qqmlitemmodels::persistentModelIndex()
         QCOMPARE(object->property("column").toInt(), index.column());
         QCOMPARE(object->property("parent").toModelIndex(), index.parent());
         QCOMPARE(object->property("model").value<QAbstractItemModel *>(), index.model());
-        QCOMPARE(object->property("internalId").toULongLong(), index.internalId());
+        QCOMPARE(object->property("internalId").value<quintptr>(), index.internalId());
 
         if (i < 2) {
             index = model.index(2 + i, 4 - i, index);
