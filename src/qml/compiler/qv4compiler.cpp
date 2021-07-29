@@ -105,8 +105,12 @@ void QV4::Compiler::StringTableGenerator::serialize(CompiledData::Unit *unit)
         s->refcount = -1;
         s->size = qstr.length();
         s->allocAndCapacityReservedFlag = 0;
+#ifdef __CHERI_PURE_CAPABILITY__
+        s->offsetOnCheri = sizeof(QV4::CompiledData::String);
+#else
         s->offsetOn32Bit = sizeof(QV4::CompiledData::String);
         s->offsetOn64Bit = sizeof(QV4::CompiledData::String);
+#endif
 
         ushort *uc = reinterpret_cast<ushort *>(reinterpret_cast<char *>(s) + sizeof(*s));
 #if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
