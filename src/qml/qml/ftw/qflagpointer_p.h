@@ -102,9 +102,9 @@ public:
 private:
     quintptr ptr_value = 0;
 
-    static const quintptr FlagBit = 0x1;
-    static const quintptr Flag2Bit = 0x2;
-    static const quintptr FlagsMask = FlagBit | Flag2Bit;
+    static const qptraddr FlagBit = 0x1;
+    static const qptraddr Flag2Bit = 0x2;
+    static const qptraddr FlagsMask = FlagBit | Flag2Bit;
 };
 
 template<typename T, typename T2>
@@ -134,9 +134,9 @@ public:
 private:
     quintptr ptr_value = 0;
 
-    static const quintptr FlagBit = 0x1;
-    static const quintptr Flag2Bit = 0x2;
-    static const quintptr FlagsMask = FlagBit | Flag2Bit;
+    static const qptraddr FlagBit = 0x1;
+    static const qptraddr Flag2Bit = 0x2;
+    static const qptraddr FlagsMask = FlagBit | Flag2Bit;
 };
 
 template<typename T>
@@ -149,11 +149,7 @@ QFlagPointer<T>::QFlagPointer(T *v)
 : ptr_value(quintptr(v))
 {
     Q_STATIC_ASSERT_X(Q_ALIGNOF(T) >= 4, "Type T does not have sufficient alignment");
-#ifdef __CHERI_PURE_CAPABILITY__
-	Q_ASSERT(cheri_low_bits_get(ptr_value, FlagsMask) == 0);
-#else
-    Q_ASSERT((ptr_value & FlagsMask) == 0);
-#endif
+    Q_ASSERT(((qptraddr)ptr_value & FlagsMask) == 0);
 }
 
 template<typename T>
@@ -165,41 +161,25 @@ QFlagPointer<T>::QFlagPointer(const QFlagPointer<T> &o)
 template<typename T>
 bool QFlagPointer<T>::isNull() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return 0 == cheri_low_bits_clear(ptr_value, FlagsMask);
-#else
-    return 0 == (ptr_value & (~FlagsMask));
-#endif
+    return 0 == ((qptraddr)ptr_value & (~FlagsMask));
 }
 
 template<typename T>
 bool QFlagPointer<T>::flag() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return cheri_low_bits_get(ptr_value, FlagBit);
-#else
-    return ptr_value & FlagBit;
-#endif
+    return (qptraddr)ptr_value & FlagBit;
 }
 
 template<typename T>
 void QFlagPointer<T>::setFlag()
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_or(ptr_value, FlagBit);
-#else
     ptr_value |= FlagBit;
-#endif
 }
 
 template<typename T>
 void QFlagPointer<T>::clearFlag()
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_clear(ptr_value, FlagBit);
-#else
     ptr_value &= ~FlagBit;
-#endif
 }
 
 template<typename T>
@@ -212,31 +192,19 @@ void QFlagPointer<T>::setFlagValue(bool v)
 template<typename T>
 bool QFlagPointer<T>::flag2() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return cheri_low_bits_get(ptr_value, FlagsMask) & Flag2Bit;
-#else
-    return ptr_value & Flag2Bit;
-#endif
+    return (qptraddr)ptr_value & Flag2Bit;
 }
 
 template<typename T>
 void QFlagPointer<T>::setFlag2()
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_or(ptr_value, Flag2Bit);
-#else
     ptr_value |= Flag2Bit;
-#endif
 }
 
 template<typename T>
 void QFlagPointer<T>::clearFlag2()
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_set(ptr_value, FlagsMask, cheri_low_bits_get(ptr_value, FlagBit));
-#else
     ptr_value &= ~Flag2Bit;
-#endif
 }
 
 template<typename T>
@@ -256,48 +224,28 @@ QFlagPointer<T> &QFlagPointer<T>::operator=(const QFlagPointer &o)
 template<typename T>
 QFlagPointer<T> &QFlagPointer<T>::operator=(T *o)
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-	Q_ASSERT(cheri_low_bits_get(quintptr(o), FlagsMask) == 0);
-#else
-    Q_ASSERT((quintptr(o) & FlagsMask) == 0);
-#endif
+    Q_ASSERT((qptraddr(o) & FlagsMask) == 0);
 
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_set(quintptr(o), FlagsMask, cheri_low_bits_get(ptr_value, FlagsMask));
-#else
-    ptr_value = quintptr(o) | (ptr_value & FlagsMask);
-#endif
+    ptr_value = quintptr(o) | ((qptraddr)ptr_value & FlagsMask);
     return *this;
 }
 
 template<typename T>
 T *QFlagPointer<T>::operator->() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return (T *)(cheri_low_bits_clear(ptr_value, FlagsMask));
-#else
     return (T *)(ptr_value & ~FlagsMask);
-#endif
 }
 
 template<typename T>
 T *QFlagPointer<T>::operator*() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return (T *)(cheri_low_bits_clear(ptr_value, FlagsMask));
-#else
     return (T *)(ptr_value & ~FlagsMask);
-#endif
 }
 
 template<typename T>
 T *QFlagPointer<T>::data() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return (T *)(cheri_low_bits_clear(ptr_value, FlagsMask));
-#else
     return (T *)(ptr_value & ~FlagsMask);
-#endif
 }
 
 template<typename T>
@@ -317,28 +265,16 @@ QBiPointer<T, T2>::QBiPointer(T *v)
 {
     Q_STATIC_ASSERT_X(QtPrivate::QFlagPointerAlignment<T>::Value >= 4,
                       "Type T does not have sufficient alignment");
-#ifdef __CHERI_PURE_CAPABILITY__
-	Q_ASSERT(cheri_low_bits_get(quintptr(v), FlagsMask) == 0);
-#else
-    Q_ASSERT((quintptr(v) & FlagsMask) == 0);
-#endif
+    Q_ASSERT((qptraddr(v) & FlagsMask) == 0);
 }
 
 template<typename T, typename T2>
 QBiPointer<T, T2>::QBiPointer(T2 *v)
-#ifdef __CHERI_PURE_CAPABILITY__
-: ptr_value(cheri_low_bits_or(quintptr(v), Flag2Bit))
-#else
 : ptr_value(quintptr(v) | Flag2Bit)
-#endif
 {
     Q_STATIC_ASSERT_X(QtPrivate::QFlagPointerAlignment<T2>::Value >= 4,
                       "Type T2 does not have sufficient alignment");
-#ifdef __CHERI_PURE_CAPABILITY__
-	Q_ASSERT(cheri_low_bits_get(quintptr(v), FlagsMask) == 0);
-#else
-    Q_ASSERT((quintptr(v) & FlagsMask) == 0);
-#endif
+    Q_ASSERT((qptraddr(v) & FlagsMask) == 0);
 }
 
 template<typename T, typename T2>
@@ -350,61 +286,37 @@ QBiPointer<T, T2>::QBiPointer(const QBiPointer<T, T2> &o)
 template<typename T, typename T2>
 bool QBiPointer<T, T2>::isNull() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return 0 == cheri_low_bits_clear(ptr_value, FlagsMask);
-#else
-    return 0 == (ptr_value & (~FlagsMask));
-#endif
+    return 0 == ((qptraddr)ptr_value & (~FlagsMask));
 }
 
 template<typename T, typename T2>
 bool QBiPointer<T, T2>::isT1() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return !(cheri_low_bits_get(ptr_value, FlagsMask) & (size_t) Flag2Bit);
-#else
-    return !(ptr_value & Flag2Bit);
-#endif
+    return !((qptraddr)ptr_value & Flag2Bit);
 }
 
 template<typename T, typename T2>
 bool QBiPointer<T, T2>::isT2() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return cheri_low_bits_get(ptr_value, FlagsMask) & (size_t) Flag2Bit;
-#else
-    return ptr_value & Flag2Bit;
-#endif
+    return (qptraddr)ptr_value & Flag2Bit;
 }
 
 template<typename T, typename T2>
 bool QBiPointer<T, T2>::flag() const
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return cheri_low_bits_get(ptr_value, FlagBit);
-#else
-    return ptr_value & FlagBit;
-#endif
+    return (qptraddr)ptr_value & FlagBit;
 }
 
 template<typename T, typename T2>
 void QBiPointer<T, T2>::setFlag()
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_or(ptr_value, FlagBit);
-#else
     ptr_value |= FlagBit;
-#endif
 }
 
 template<typename T, typename T2>
 void QBiPointer<T, T2>::clearFlag()
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_clear(ptr_value, FlagBit);
-#else
     ptr_value &= ~FlagBit;
-#endif
 }
 
 template<typename T, typename T2>
@@ -424,34 +336,18 @@ QBiPointer<T, T2> &QBiPointer<T, T2>::operator=(const QBiPointer<T, T2> &o)
 template<typename T, typename T2>
 QBiPointer<T, T2> &QBiPointer<T, T2>::operator=(T *o)
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-	Q_ASSERT(cheri_low_bits_get(quintptr(o), FlagsMask) == 0);
-#else
-    Q_ASSERT((quintptr(o) & FlagsMask) == 0);
-#endif
+    Q_ASSERT((qptraddr(o) & FlagsMask) == 0);
 
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_set(quintptr(o), FlagBit, cheri_low_bits_get(ptr_value, FlagBit));
-#else
-    ptr_value = quintptr(o) | (ptr_value & FlagBit);
-#endif
+    ptr_value = quintptr(o) | ((qptraddr)ptr_value & FlagBit);
     return *this;
 }
 
 template<typename T, typename T2>
 QBiPointer<T, T2> &QBiPointer<T, T2>::operator=(T2 *o)
 {
-#ifdef __CHERI_PURE_CAPABILITY__
-	Q_ASSERT(cheri_low_bits_get(quintptr(o), FlagsMask) == 0);
-#else
-    Q_ASSERT((quintptr(o) & FlagsMask) == 0);
-#endif
+    Q_ASSERT((qptraddr(o) & FlagsMask) == 0);
 
-#ifdef __CHERI_PURE_CAPABILITY__
-    ptr_value = cheri_low_bits_set(quintptr(o), FlagsMask, (cheri_low_bits_get(ptr_value, FlagBit) | (size_t) Flag2Bit));
-#else
-    ptr_value = quintptr(o) | (ptr_value & FlagBit) | Flag2Bit;
-#endif
+    ptr_value = quintptr(o) | ((qptraddr)ptr_value & FlagBit) | Flag2Bit;
     return *this;
 }
 
@@ -459,22 +355,14 @@ template<typename T, typename T2>
 T *QBiPointer<T, T2>::asT1() const
 {
     Q_ASSERT(isT1());
-#ifdef __CHERI_PURE_CAPABILITY__
-    return (T *)(cheri_low_bits_clear(ptr_value, FlagsMask));
-#else
     return (T *)(ptr_value & ~FlagsMask);
-#endif
 }
 
 template<typename T, typename T2>
 T2 *QBiPointer<T, T2>::asT2() const
 {
     Q_ASSERT(isT2());
-#ifdef __CHERI_PURE_CAPABILITY__
-    return (T2 *)(cheri_low_bits_clear(ptr_value, FlagsMask));
-#else
     return (T2 *)(ptr_value & ~FlagsMask);
-#endif
 }
 
 QT_END_NAMESPACE

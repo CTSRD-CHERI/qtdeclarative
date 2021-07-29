@@ -91,12 +91,7 @@ struct SparseArrayNode
     Color color() const { return Color(p & 1); }
     void setColor(Color c) { if (c == Black) p |= Black; else p &= ~Black; }
     SparseArrayNode *parent() const { return reinterpret_cast<SparseArrayNode *>(p & ~Mask); }
-#ifdef __CHERI_PURE_CAPABILITY__
-    void setParent(SparseArrayNode *pp) { p = cheri_low_bits_set(quintptr(pp), Mask, cheri_low_bits_get(p, Mask)); }
-#else
-    void setParent(SparseArrayNode *pp) { p = (p & Mask) | quintptr(pp); }
-#endif
-
+    void setParent(SparseArrayNode *pp) { p = ((qptraddr)p & Mask) | quintptr(pp); }
 
     uint key() const {
         uint k = size_left;
