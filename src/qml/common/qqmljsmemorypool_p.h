@@ -86,8 +86,8 @@ public:
 
     inline void *allocate(size_t size)
     {
-        constexpr size_t alignment = qMin(alignof(void *), (size_t)8);
-        size = (size + (alignment - 1)) & ~size_t(alignment - 1);
+        constexpr size_t alignment = qMax(alignof(void *), (size_t)8);
+        size = qAlignUp(size, alignment);
         if (Q_LIKELY(_ptr && (_ptr + size < _end))) {
             void *addr = _ptr;
             _ptr += size;
