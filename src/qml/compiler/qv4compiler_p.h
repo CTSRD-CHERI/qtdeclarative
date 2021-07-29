@@ -86,7 +86,10 @@ struct Q_QMLCOMPILER_PRIVATE_EXPORT StringTableGenerator {
     QString stringForIndex(int index) const { return strings.at(index); }
     uint stringCount() const { return strings.size() - backingUnitTableSize; }
 
-    uint sizeOfTableAndData() const { return stringDataSize + ((stringCount() * sizeof(uint) + 7) & ~7); }
+    uint sizeOfTableAndData() const
+    {
+        return stringDataSize + qAlignUp(stringCount() * sizeof(uint), CompiledData::pointerAlign);
+    }
 
     void freeze() { frozen = true; }
 

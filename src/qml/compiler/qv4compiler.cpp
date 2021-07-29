@@ -48,14 +48,6 @@
 #include <private/qqmlirbuilder_p.h>
 #include <QCryptographicHash>
 
-// Efficient implementation that takes advantage of powers of two.
-static inline size_t roundUpToMultipleOf(size_t divisor, size_t x)
-{
-    Q_ASSERT(divisor && !(divisor & (divisor - 1)));
-    const size_t remainderMask = divisor - 1;
-    return (x + remainderMask) & ~remainderMask;
-}
-
 QV4::Compiler::StringTableGenerator::StringTableGenerator()
 {
     clear();
@@ -100,7 +92,8 @@ void QV4::Compiler::StringTableGenerator::serialize(CompiledData::Unit *unit)
 {
     char *dataStart = reinterpret_cast<char *>(unit);
     quint32_le *stringTable = reinterpret_cast<quint32_le *>(dataStart + unit->offsetToStringTable);
-    char *stringData = reinterpret_cast<char *>(stringTable) + roundUpToMultipleOf(8, unit->stringTableSize * sizeof(uint));
+    char *stringData = reinterpret_cast<char *>(stringTable)
+            + qAlignUp(unit->stringTableSize * sizeof(uint), CompiledData::pointerAlign);
     for (int i = backingUnitTableSize ; i < strings.size(); ++i) {
         const int index = i - backingUnitTableSize;
         stringTable[index] = stringData - dataStart;
@@ -429,7 +422,8 @@ void QV4::Compiler::JSUnitGenerator::writeFunction(char *f, QV4::Compiler::Conte
 {
     QV4::CompiledData::Function *function = (QV4::CompiledData::Function *)f;
 
-    quint32 currentOffset = static_cast<quint32>(roundUpToMultipleOf(8, sizeof(*function)));
+    quint32 currentOffset =
+            static_cast<quint32>(qAlignUp(sizeof(*function), CompiledData::pointerAlign));
 
     function->nameIndex = getStringId(irFunction->name);
     function->flags = 0;
@@ -584,7 +578,8 @@ void QV4::Compiler::JSUnitGenerator::writeBlock(char *b, QV4::Compiler::Context 
 {
     QV4::CompiledData::Block *block = reinterpret_cast<QV4::CompiledData::Block *>(b);
 
-    quint32 currentOffset = static_cast<quint32>(roundUpToMultipleOf(8, sizeof(*block)));
+    quint32 currentOffset =
+            static_cast<quint32>(qAlignUp(sizeof(*block), CompiledData::pointerAlign));
 
     block->sizeOfLocalTemporalDeadZone = irBlock->sizeOfLocalTemporalDeadZone;
     block->nLocals = irBlock->locals.size();
@@ -647,7 +642,7 @@ QV4::CompiledData::Unit QV4::Compiler::JSUnitGenerator::generateHeader(QV4::Comp
     unit.constantTableSize = constants.size();
 
     // Ensure we load constants from well-aligned addresses into for example SSE registers.
-    nextOffset = static_cast<quint32>(roundUpToMultipleOf(16, nextOffset));
+    nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::vectorAlign));
     unit.offsetToConstantTable = nextOffset;
     nextOffset += unit.constantTableSize * sizeof(ReturnedValue);
 
@@ -658,19 +653,19 @@ QV4::CompiledData::Unit QV4::Compiler::JSUnitGenerator::generateHeader(QV4::Comp
     *jsClassDataOffset = nextOffset;
     nextOffset += jsClassData.size();
 
-    nextOffset = static_cast<quint32>(roundUpToMultipleOf(8, nextOffset));
+    nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::pointerAlign));
 
     unit.translationTableSize = translations.count();
     unit.offsetToTranslationTable = nextOffset;
     nextOffset += unit.translationTableSize * sizeof(CompiledData::TranslationData);
 
-    nextOffset = static_cast<quint32>(roundUpToMultipleOf(8, nextOffset));
+    nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::pointerAlign));
 
     const auto reserveExportTable = [&nextOffset](int count, quint32_le *tableSizePtr, quint32_le *offsetPtr) {
         *tableSizePtr = count;
         *offsetPtr = nextOffset;
         nextOffset += count * sizeof(CompiledData::ExportEntry);
-        nextOffset = static_cast<quint32>(roundUpToMultipleOf(8, nextOffset));
+        nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::pointerAlign));
     };
 
     reserveExportTable(module->localExportEntries.count(), &unit.localExportEntryTableSize, &unit.offsetToLocalExportEntryTable);
@@ -680,12 +675,12 @@ QV4::CompiledData::Unit QV4::Compiler::JSUnitGenerator::generateHeader(QV4::Comp
     unit.importEntryTableSize = module->importEntries.count();
     unit.offsetToImportEntryTable = nextOffset;
     nextOffset += unit.importEntryTableSize * sizeof(CompiledData::ImportEntry);
-    nextOffset = static_cast<quint32>(roundUpToMultipleOf(8, nextOffset));
+    nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::pointerAlign));
 
     unit.moduleRequestTableSize = module->moduleRequests.count();
     unit.offsetToModuleRequestTable = nextOffset;
     nextOffset += unit.moduleRequestTableSize * sizeof(uint);
-    nextOffset = static_cast<quint32>(roundUpToMultipleOf(8, nextOffset));
+    nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::pointerAlign));
 
     quint32 functionSize = 0;
     for (int i = 0; i < module->functions.size(); ++i) {
@@ -725,7 +720,7 @@ QV4::CompiledData::Unit QV4::Compiler::JSUnitGenerator::generateHeader(QV4::Comp
 
     if (option == GenerateWithStringTable) {
         unit.stringTableSize = stringTable.stringCount();
-        nextOffset = static_cast<quint32>(roundUpToMultipleOf(8, nextOffset));
+        nextOffset = static_cast<quint32>(qAlignUp(nextOffset, CompiledData::pointerAlign));
         unit.offsetToStringTable = nextOffset;
         nextOffset += stringTable.sizeOfTableAndData();
     } else {
