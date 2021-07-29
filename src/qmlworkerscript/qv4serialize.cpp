@@ -104,17 +104,28 @@ static inline quint32 headersize(quint32 header)
 
 static inline void push(QByteArray &data, quint32 value)
 {
+    Q_ASSERT(qIsAligned(data.end(), alignof(quint32)));
     data.append((const char *)&value, sizeof(quint32));
 }
 
 static inline void push(QByteArray &data, double value)
 {
+    Q_ASSERT(qIsAligned(data.end(), alignof(double)));
     data.append((const char *)&value, sizeof(double));
 }
 
-static inline void push(QByteArray &data, void *ptr)
+static inline void pushPtr(QByteArray &data, void *ptr)
 {
-    data.append((const char *)&ptr, sizeof(void *));
+    char *alignedPtr = qAlignUp(data.end(), alignof(void *));
+    if (alignedPtr != data.end()) {
+        qptrdiff paddingBytes = alignedPtr - data.end();
+        data.append(paddingBytes, 'A');
+        // printf("%s: Added %zd padding bytes %#p\n", __func__, paddingBytes, data.end());
+    }
+    // printf("%s end pre %#p\n", __func__, data.end());
+    data.resize(data.size() + sizeof(void *));
+    // printf("%s end post %#p\n", __func__, data.end());
+    *(void **)(data.end() - sizeof(void *)) = ptr;
 }
 
 static inline void reserve(QByteArray &data, int extra)
@@ -124,6 +135,7 @@ static inline void reserve(QByteArray &data, int extra)
 
 static inline quint32 popUint32(const char *&data)
 {
+    Q_ASSERT(qIsAligned(data, alignof(quint32)));
     quint32 rv = *((const quint32 *)data);
     data += sizeof(quint32);
     return rv;
@@ -131,6 +143,7 @@ static inline quint32 popUint32(const char *&data)
 
 static inline double popDouble(const char *&data)
 {
+    Q_ASSERT(qIsAligned(data, alignof(double)));
     double rv = *((const double *)data);
     data += sizeof(double);
     return rv;
@@ -138,6 +151,14 @@ static inline double popDouble(const char *&data)
 
 static inline void *popPtr(const char *&data)
 {
+    const char *alignedPtr = qAlignUp(data, alignof(void *));
+    if (alignedPtr != data) {
+        // qptrdiff paddingBytes = alignedPtr - data;
+        // Q_ASSERT(memcmp(data, QByteArray(paddingBytes, 'A').data(), paddingBytes) == 0);
+        // printf("%s: Skipped %zd padding bytes %#p->%#p\n", __func__, paddingBytes, data,
+        // alignedPtr);
+        data = alignedPtr;
+    }
     void *rv = *((void *const *)data);
     data += sizeof(void *);
     return rv;
@@ -237,7 +258,7 @@ void Serialize::serialize(QByteArray &data, const QV4::Value &v, ExecutionEngine
             if (QObject *agent = qvariant_cast<QObject *>(lm->property("agent"))) {
                 if (QMetaObject::invokeMethod(agent, "addref")) {
                     push(data, valueheader(WorkerListModel));
-                    push(data, (void *)agent);
+                    pushPtr(data, (void *)agent);
                     return;
                 }
             }
