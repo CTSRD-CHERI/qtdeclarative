@@ -376,6 +376,7 @@ static bool saveUnitAsCpp(const QString &inputFileName, const QString &outputFil
             const uchar *end = begin + size;
             stream << Qt::hex;
             int col = 0;
+            // TODO: would be nice to add comments here
             for (const uchar *data = begin; data < end; ++data, ++col) {
                 if (data > begin)
                     stream << ',';

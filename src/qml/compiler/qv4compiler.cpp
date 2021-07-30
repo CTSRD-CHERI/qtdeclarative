@@ -92,25 +92,28 @@ void QV4::Compiler::StringTableGenerator::serialize(CompiledData::Unit *unit)
 {
     char *dataStart = reinterpret_cast<char *>(unit);
     quint32_le *stringTable = reinterpret_cast<quint32_le *>(dataStart + unit->offsetToStringTable);
+    constexpr size_t stringAlignment = CompiledData::pointerAlign;
+    static_assert(stringAlignment >= alignof(QStringData), "must be loadable at run time");
+    Q_ASSERT(qIsAligned(dataStart, stringAlignment));
+    Q_ASSERT(qIsAligned(stringTable, stringAlignment));
+    Q_ASSERT(qIsAligned((uint)unit->offsetToStringTable, stringAlignment));
     char *stringData = reinterpret_cast<char *>(stringTable)
             + qAlignUp(unit->stringTableSize * sizeof(uint), CompiledData::pointerAlign);
     for (int i = backingUnitTableSize ; i < strings.size(); ++i) {
         const int index = i - backingUnitTableSize;
         stringTable[index] = stringData - dataStart;
+        Q_ASSERT(qIsAligned((quint32)stringTable[index], stringAlignment));
         const QString &qstr = strings.at(i);
 
         QV4::CompiledData::String *s = reinterpret_cast<QV4::CompiledData::String *>(stringData);
 
-        Q_ASSERT(qIsAligned(s, alignof(QV4::CompiledData::String)));
+        Q_ASSERT(qIsAligned(s, stringAlignment));
         s->refcount = -1;
         s->size = qstr.length();
         s->allocAndCapacityReservedFlag = 0;
-#ifdef __CHERI_PURE_CAPABILITY__
-        s->offsetOnCheri = sizeof(QV4::CompiledData::String);
-#else
         s->offsetOn32Bit = sizeof(QV4::CompiledData::String);
         s->offsetOn64Bit = sizeof(QV4::CompiledData::String);
-#endif
+        s->padForCHERI = 0;
 
         ushort *uc = reinterpret_cast<ushort *>(reinterpret_cast<char *>(s) + sizeof(*s));
 #if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
@@ -618,6 +621,7 @@ QV4::CompiledData::Unit QV4::Compiler::JSUnitGenerator::generateHeader(QV4::Comp
     memset(unit.dependencyMD5Checksum, 0, sizeof(unit.dependencyMD5Checksum));
 
     quint32 nextOffset = sizeof(CompiledData::Unit);
+    static_assert((sizeof(CompiledData::Unit) % alignof(void *)) == 0, "");
 
     unit.functionTableSize = module->functions.size();
     unit.offsetToFunctionTable = nextOffset;
