@@ -110,7 +110,6 @@ static inline void push(QByteArray &data, quint32 value)
 
 static inline void push(QByteArray &data, double value)
 {
-    Q_ASSERT(qIsAligned(data.end(), alignof(double)));
     data.append((const char *)&value, sizeof(double));
 }
 
@@ -143,8 +142,9 @@ static inline quint32 popUint32(const char *&data)
 
 static inline double popDouble(const char *&data)
 {
-    Q_ASSERT(qIsAligned(data, alignof(double)));
-    double rv = *((const double *)data);
+    // Use memcpy since it might not be aligned
+    double rv;
+    memcpy(&rv, data, sizeof(double));
     data += sizeof(double);
     return rv;
 }
