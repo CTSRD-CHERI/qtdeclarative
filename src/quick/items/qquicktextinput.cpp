@@ -2955,6 +2955,7 @@ void QQuickTextInputPrivate::setTopPadding(qreal value, bool reset)
     }
     if ((!reset && !qFuzzyCompare(oldPadding, value)) || (reset && !qFuzzyCompare(oldPadding, padding()))) {
         updateLayout();
+        q->updateCursorRectangle();
         emit q->topPaddingChanged();
     }
 }
@@ -2969,6 +2970,7 @@ void QQuickTextInputPrivate::setLeftPadding(qreal value, bool reset)
     }
     if ((!reset && !qFuzzyCompare(oldPadding, value)) || (reset && !qFuzzyCompare(oldPadding, padding()))) {
         updateLayout();
+        q->updateCursorRectangle();
         emit q->leftPaddingChanged();
     }
 }
@@ -2983,6 +2985,7 @@ void QQuickTextInputPrivate::setRightPadding(qreal value, bool reset)
     }
     if ((!reset && !qFuzzyCompare(oldPadding, value)) || (reset && !qFuzzyCompare(oldPadding, padding()))) {
         updateLayout();
+        q->updateCursorRectangle();
         emit q->rightPaddingChanged();
     }
 }
@@ -2997,6 +3000,7 @@ void QQuickTextInputPrivate::setBottomPadding(qreal value, bool reset)
     }
     if ((!reset && !qFuzzyCompare(oldPadding, value)) || (reset && !qFuzzyCompare(oldPadding, padding()))) {
         updateLayout();
+        q->updateCursorRectangle();
         emit q->bottomPaddingChanged();
     }
 }
@@ -3497,11 +3501,10 @@ void QQuickTextInputPrivate::processInputMethodEvent(QInputMethodEvent *event)
     m_textLayout.setFormats(formats);
 
     updateDisplayText(/*force*/ true);
-    if ((cursorPositionChanged && !emitCursorPositionChanged())
-            || m_preeditCursor != oldPreeditCursor
-            || isGettingInput) {
+    if (cursorPositionChanged && emitCursorPositionChanged())
+        q->updateInputMethod(Qt::ImCursorPosition | Qt::ImAnchorPosition);
+    else if (m_preeditCursor != oldPreeditCursor || isGettingInput)
         q->updateCursorRectangle();
-    }
 
     if (isGettingInput)
         finishChange(priorState);
@@ -4716,6 +4719,7 @@ void QQuickTextInput::setPadding(qreal padding)
 
     d->extra.value().padding = padding;
     d->updateLayout();
+    updateCursorRectangle();
     emit paddingChanged();
     if (!d->extra.isAllocated() || !d->extra->explicitTopPadding)
         emit topPaddingChanged();
