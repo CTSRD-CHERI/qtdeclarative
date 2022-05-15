@@ -46,6 +46,7 @@ public:
 private slots:
     void valueWithoutCallingObjectFirst_data();
     void valueWithoutCallingObjectFirst();
+    void filterOnGroup_removeWhenCompleted();
     void redrawUponColumnChange();
 };
 
@@ -137,6 +138,18 @@ void tst_QQmlDelegateModel::valueWithoutCallingObjectFirst()
     QQmlDelegateModel *model = qobject_cast<QQmlDelegateModel*>(root.data());
     QVERIFY(model);
     QCOMPARE(model->variantValue(index, role), expectedValue);
+}
+
+void tst_QQmlDelegateModel::filterOnGroup_removeWhenCompleted()
+{
+    QQuickView view(testFileUrl("removeFromGroup.qml"));
+    QCOMPARE(view.status(), QQuickView::Ready);
+    view.show();
+    QQuickItem *root = view.rootObject();
+    QVERIFY(root);
+    QQmlDelegateModel *model = root->findChild<QQmlDelegateModel*>();
+    QVERIFY(model);
+    QTest::qWaitFor([=]{ return model->count() == 2; } );
 }
 
 void tst_QQmlDelegateModel::redrawUponColumnChange()
