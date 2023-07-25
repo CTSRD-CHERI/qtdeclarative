@@ -286,7 +286,7 @@ Q_STATIC_ASSERT(sizeof(HeapItem) == Chunk::SlotSize);
 #ifndef __CHERI_PURE_CAPABILITY__
 Q_STATIC_ASSERT(QT_POINTER_SIZE*8 == Chunk::Bits);
 #else
-Q_STATIC_ASSERT(sizeof(vaddr_t)*8 == Chunk::Bits);
+Q_STATIC_ASSERT(sizeof(ptraddr_t)*8 == Chunk::Bits);
 #endif
 Q_STATIC_ASSERT((1 << Chunk::BitShift) == Chunk::Bits);
 
