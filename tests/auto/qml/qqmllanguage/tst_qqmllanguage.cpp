@@ -146,6 +146,7 @@ private slots:
     void aliasProperties();
     void aliasPropertiesAndSignals();
     void aliasPropertyChangeSignals();
+    void qtbug_89822();
     void componentCompositeType();
     void i18n();
     void i18n_data();
@@ -335,6 +336,9 @@ private slots:
     void bareInlineComponent();
 
     void hangOnWarning();
+    void objectAsBroken();
+
+    void ambiguousContainingType();
 
 private:
     QQmlEngine engine;
@@ -2230,6 +2234,12 @@ void tst_qqmllanguage::aliasPropertiesAndSignals()
     QScopedPointer<QObject> o(component.create());
     QVERIFY(o);
     QCOMPARE(o->property("test").toBool(), true);
+}
+
+void tst_qqmllanguage::qtbug_89822()
+{
+    QQmlComponent component(&engine, testFileUrl("qtbug_89822.qml"));
+    VERIFY_ERRORS("qtbug_89822.errors.txt");
 }
 
 // Test that the root element in a composite type can be a Component
@@ -5851,6 +5861,35 @@ void tst_qqmllanguage::hangOnWarning()
     QQmlComponent component(&engine, testFileUrl("hangOnWarning.qml"));
     QScopedPointer<QObject> object(component.create());
     QVERIFY(object != nullptr);
+}
+
+void tst_qqmllanguage::ambiguousContainingType()
+{
+    // Need to do it twice, so that we load from disk cache the second time.
+    for (int i = 0; i < 2; ++i) {
+        QQmlEngine engine;
+
+        // Should not crash when loading the type
+        QQmlComponent c(&engine, testFileUrl("ambiguousBinding/ambiguousContainingType.qml"));
+        QVERIFY2(c.isReady(), qPrintable(c.errorString()));
+        QScopedPointer<QObject> o(c.create());
+        QVERIFY(!o.isNull());
+    }
+}
+
+void tst_qqmllanguage::objectAsBroken()
+{
+    QQmlEngine engine;
+    QQmlComponent c(&engine, testFileUrl("asBroken.qml"));
+    QVERIFY2(c.isReady(), qPrintable(c.errorString()));
+    QScopedPointer<QObject> o(c.create());
+    QVERIFY(!o.isNull());
+    QVariant selfAsBroken = o->property("selfAsBroken");
+    QVERIFY(selfAsBroken.isValid());
+    // QCOMPARE(selfAsBroken.metaType(), QMetaType::fromType<std::nullptr_t>());
+
+    QQmlComponent b(&engine, testFileUrl("Broken.qml"));
+    QVERIFY(b.isError());
 }
 
 QTEST_MAIN(tst_qqmllanguage)

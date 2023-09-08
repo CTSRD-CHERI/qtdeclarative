@@ -834,7 +834,20 @@ void QQuickTextInput::setCursorVisible(bool on)
 
 /*!
     \qmlproperty int QtQuick::TextInput::cursorPosition
-    The position of the cursor in the TextInput.
+    The position of the cursor in the TextInput. The cursor is positioned between
+    characters.
+
+    \note The \e characters in this case refer to the string of \l QChar objects,
+    therefore 16-bit Unicode characters, and the position is considered an index
+    into this string. This does not necessarily correspond to individual graphemes
+    in the writing system, as a single grapheme may be represented by multiple
+    Unicode characters, such as in the case of surrogate pairs, linguistic
+    ligatures or diacritics.
+
+    \l displayText is different if echoMode is set to \l TextInput.Password: then
+    each passwordMaskCharacter is a "narrow" character
+    (the cursorPosition always moves by 1), even if the text in the TextInput is not.
+
 */
 int QQuickTextInput::cursorPosition() const
 {
@@ -1155,6 +1168,7 @@ void QQuickTextInput::setInputMask(const QString &im)
 
 /*!
     \qmlproperty bool QtQuick::TextInput::acceptableInput
+    \readonly
 
     This property is always true unless a validator or input mask has been set.
     If a validator or input mask has been set, this property will only be true
@@ -1588,7 +1602,7 @@ void QQuickTextInput::mousePressEvent(QMouseEvent *event)
     d->moveCursor(cursor, mark);
 
     if (d->focusOnPress && !qGuiApp->styleHints()->setFocusOnTouchRelease())
-        ensureActiveFocus();
+        ensureActiveFocus(Qt::MouseFocusReason);
 
     event->setAccepted(true);
 }
@@ -1640,7 +1654,7 @@ void QQuickTextInput::mouseReleaseEvent(QMouseEvent *event)
 #endif
 
     if (d->focusOnPress && qGuiApp->styleHints()->setFocusOnTouchRelease())
-        ensureActiveFocus();
+        ensureActiveFocus(Qt::MouseFocusReason);
 
     if (!event->isAccepted())
         QQuickImplicitSizeItem::mouseReleaseEvent(event);
@@ -1875,10 +1889,10 @@ void QQuickTextInput::invalidateFontCaches()
         d->m_textLayout.engine()->resetFontEngineCache();
 }
 
-void QQuickTextInput::ensureActiveFocus()
+void QQuickTextInput::ensureActiveFocus(Qt::FocusReason reason)
 {
     bool hadActiveFocus = hasActiveFocus();
-    forceActiveFocus();
+    forceActiveFocus(reason);
 #if QT_CONFIG(im)
     Q_D(QQuickTextInput);
     // re-open input panel on press if already focused
@@ -2108,7 +2122,7 @@ void QQuickTextInput::undo()
 {
     Q_D(QQuickTextInput);
     if (!d->m_readOnly) {
-        d->resetInputMethod();
+        d->cancelInput();
         d->internalUndo();
         d->finishChange(-1, true);
     }
@@ -2124,7 +2138,7 @@ void QQuickTextInput::redo()
 {
     Q_D(QQuickTextInput);
     if (!d->m_readOnly) {
-        d->resetInputMethod();
+        d->cancelInput();
         d->internalRedo();
         d->finishChange();
     }
@@ -2751,11 +2765,13 @@ void QQuickTextInputPrivate::init()
     m_inputControl = new QInputControl(QInputControl::LineEdit, q);
 }
 
-void QQuickTextInputPrivate::resetInputMethod()
+void QQuickTextInputPrivate::cancelInput()
 {
+#if QT_CONFIG(im)
     Q_Q(QQuickTextInput);
     if (!m_readOnly && q->hasActiveFocus() && qGuiApp)
-        QGuiApplication::inputMethod()->reset();
+        cancelPreedit();
+#endif // im
 }
 
 void QQuickTextInput::updateCursorRectangle(bool scroll)
@@ -3459,7 +3475,12 @@ void QQuickTextInputPrivate::processInputMethodEvent(QInputMethodEvent *event)
     for (int i = 0; i < event->attributes().size(); ++i) {
         const QInputMethodEvent::Attribute &a = event->attributes().at(i);
         if (a.type == QInputMethodEvent::Selection) {
-            m_cursor = qBound(0, a.start + a.length, m_text.length());
+            // If we already called internalInsert(), the cursor position will
+            // already be adjusted correctly. The attribute.start does
+            // not seem to take the mask into account, so it will reset cursor
+            // to an invalid position in such case.
+            if (!cursorPositionChanged)
+                m_cursor = qBound(0, a.start + a.length, m_text.length());
             if (a.length) {
                 m_selstart = qMax(0, qMin(a.start, m_text.length()));
                 m_selend = m_cursor;
@@ -4698,7 +4719,7 @@ void QQuickTextInput::ensureVisible(int position)
 void QQuickTextInput::clear()
 {
     Q_D(QQuickTextInput);
-    d->resetInputMethod();
+    d->cancelInput();
     d->clear();
 }
 

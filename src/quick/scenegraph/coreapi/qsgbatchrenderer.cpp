@@ -1133,6 +1133,9 @@ void Renderer::releaseCachedResources()
 
     if (m_rhi)
         m_rhi->releaseCachedResources();
+
+    m_vertexUploadPool.resize(0);
+    m_indexUploadPool.resize(0);
 }
 
 void Renderer::invalidateAndRecycleBatch(Batch *b)
@@ -2212,6 +2215,15 @@ void Renderer::uploadBatch(Batch *b)
          */
     int bufferSize =  b->vertexCount * g->sizeOfVertex();
     int ibufferSize = 0;
+    // At this point, we need to check if the vertices byte size is 4 byte aligned or not.
+    // If an unaligned value is used in a shared buffer with indices, it causes problems with
+    // glDrawElements. We need to do a 4 byte alignment so that it can work with both
+    // QSGGeometry::UnsignedShortType and QSGGeometry::UnsignedIntType
+    int paddingBytes = 0;
+    if (!m_context->separateIndexBuffer()) {
+        paddingBytes = aligned(bufferSize, 4) - bufferSize;
+        bufferSize += paddingBytes;
+    }
     if (b->merged) {
         ibufferSize = b->indexCount * mergedIndexElemSize();
         if (m_useDepthBuffer)
@@ -2236,7 +2248,7 @@ void Renderer::uploadBatch(Batch *b)
         char *zData = vertexData + b->vertexCount * g->sizeOfVertex();
         char *indexData = separateIndexBuffer
                 ? b->ibo.data
-                : zData + (int(m_useDepthBuffer) * b->vertexCount * sizeof(float));
+                : zData + (int(m_useDepthBuffer) * b->vertexCount * sizeof(float)) + paddingBytes;
 
         quint16 iOffset16 = 0;
         quint32 iOffset32 = 0;
@@ -2284,7 +2296,7 @@ void Renderer::uploadBatch(Batch *b)
     } else {
         char *vboData = b->vbo.data;
         char *iboData = separateIndexBuffer ? b->ibo.data
-                                            : vboData + b->vertexCount * g->sizeOfVertex();
+                                            : vboData + b->vertexCount * g->sizeOfVertex() + paddingBytes;
         Element *e = b->first;
         while (e) {
             QSGGeometry *g = e->node->geometry();
@@ -3173,8 +3185,14 @@ void Renderer::renderUnmergedBatch(const Batch *batch) // legacy (GL-only)
 
     int vOffset = 0;
     char *iOffset = indexBase;
+    // If a shared buffer is used, 4 byte alignment was done to avoid issues
+    // while using glDrawElements with both QSGGeometry::UnsignedShortType and
+    // QSGGeometry::UnsignedIntType. Here, we need to take this into account
+    // while calculating iOffset value to end up with the correct offset for drawing.
+    int vertexDataByteSize = batch->vertexCount * gn->geometry()->sizeOfVertex();
+    vertexDataByteSize = aligned(vertexDataByteSize, 4);
     if (!separateIndexBuffer)
-        iOffset += batch->vertexCount * gn->geometry()->sizeOfVertex();
+        iOffset += vertexDataByteSize;
 
     QMatrix4x4 rootMatrix = batch->root ? qsg_matrixForRoot(batch->root) : QMatrix4x4();
 
@@ -4006,6 +4024,17 @@ void Renderer::renderBatches()
 
         if (m_useDepthBuffer) {
             glClearDepthf(1); // calls glClearDepth() under the hood for desktop OpenGL
+            glDepthMask(true);
+        }
+        glColorMask(true, true, true, true);
+        glDisable(GL_SCISSOR_TEST);
+
+        bindable()->clear(clearMode());
+
+        if (m_renderPassRecordingCallbacks.start)
+            m_renderPassRecordingCallbacks.start(m_renderPassRecordingCallbacks.userData);
+
+        if (m_useDepthBuffer) {
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LESS);
             glDepthMask(true);
@@ -4018,11 +4047,6 @@ void Renderer::renderBatches()
         glColorMask(true, true, true, true);
         glDisable(GL_SCISSOR_TEST);
         glDisable(GL_STENCIL_TEST);
-
-        bindable()->clear(clearMode());
-
-        if (m_renderPassRecordingCallbacks.start)
-            m_renderPassRecordingCallbacks.start(m_renderPassRecordingCallbacks.userData);
 
         if (Q_LIKELY(renderOpaque)) {
             for (int i=0; i<m_opaqueBatches.size(); ++i) {
@@ -4042,12 +4066,14 @@ void Renderer::renderBatches()
         if (Q_LIKELY(renderAlpha)) {
             for (int i=0; i<m_alphaBatches.size(); ++i) {
                 Batch *b = m_alphaBatches.at(i);
-                if (b->merged)
+                if (b->merged) {
                     renderMergedBatch(b);
-                else if (b->isRenderNode)
+                } else if (b->isRenderNode) {
+                    m_current_projection_matrix = projectionMatrix();
                     renderRenderNode(b);
-                else
+                } else {
                     renderUnmergedBatch(b);
+                }
             }
         }
 

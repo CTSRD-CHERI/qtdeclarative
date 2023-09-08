@@ -88,7 +88,7 @@ public:
     {
         constexpr size_t alignment = qMax(alignof(void *), (size_t)8);
         size = qAlignUp(size, alignment);
-        if (Q_LIKELY(_ptr && (_ptr + size < _end))) {
+        if (Q_LIKELY(_ptr && size < size_t(_end - _ptr))) {
             void *addr = _ptr;
             _ptr += size;
             return addr;
