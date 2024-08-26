@@ -260,6 +260,7 @@ private slots:
     void sortNonStringArray();
     void iterateInvalidProxy();
     void applyOnHugeArray();
+    void reflectApplyOnHugeArray();
 
     void tostringRecursionCheck();
     void arrayIncludesWithLargeArray();
@@ -269,6 +270,8 @@ private slots:
 
     void uiLanguage();
     void forOfAndGc();
+
+    void spreadNoOverflow();
 
 public:
     Q_INVOKABLE QJSValue throwingCppMethod1();
@@ -5177,6 +5180,22 @@ void tst_QJSEngine::applyOnHugeArray()
     QCOMPARE(value.toString(), "RangeError: Array too large for apply().");
 }
 
+
+void tst_QJSEngine::reflectApplyOnHugeArray()
+{
+    QQmlEngine engine;
+    const QJSValue value = engine.evaluate(R"(
+(function(){
+const v1 = [];
+const v3 = [];
+v3.length = 3900000000;
+Reflect.apply(v1.reverse,v1,v3);
+})()
+    )");
+    QVERIFY(value.isError());
+    QCOMPARE(value.toString(), QLatin1String("RangeError: Invalid array length."));
+}
+
 void tst_QJSEngine::typedArraySet()
 {
     QJSEngine engine;
@@ -5323,6 +5342,16 @@ void tst_QJSEngine::forOfAndGc()
     QScopedPointer<QObject> o(c.create());
 
     QTRY_VERIFY(o->property("count").toInt() > 32768);
+}
+
+void tst_QJSEngine::spreadNoOverflow()
+{
+    QJSEngine engine;
+
+    const QString program = QString::fromLatin1("var a = [] ;a.length =  555840;Math.max(...a)");
+    const QJSValue result = engine.evaluate(program);
+    QVERIFY(result.isError());
+    QCOMPARE(result.errorType(), QJSValue::RangeError);
 }
 
 QTEST_MAIN(tst_QJSEngine)

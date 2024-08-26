@@ -193,7 +193,7 @@ int qmlRegisterUncreatableMetaObject(const QMetaObject &staticMetaObject,
     \endcode
 */
 
-bool QQmlEnginePrivate::qml_debugging_enabled = false;
+std::atomic<bool> QQmlEnginePrivate::qml_debugging_enabled{false};
 bool QQmlEnginePrivate::s_designerMode = false;
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -1588,17 +1588,22 @@ void qmlExecuteDeferred(QObject *object)
 {
     QQmlData *data = QQmlData::get(object);
 
-    if (data && !data->deferredData.isEmpty() && !data->wasDeleted(object)) {
-        QQmlEnginePrivate *ep = QQmlEnginePrivate::get(data->context->engine);
-
-        QQmlComponentPrivate::DeferredState state;
-        QQmlComponentPrivate::beginDeferred(ep, object, &state);
-
-        // Release the reference for the deferral action (we still have one from construction)
-        data->releaseDeferredData();
-
-        QQmlComponentPrivate::completeDeferred(ep, &state);
+    if (!data
+        || !data->context
+        || !data->context->engine
+        || data->deferredData.isEmpty()
+        || data->wasDeleted(object)) {
+        return;
     }
+
+    QQmlEnginePrivate *ep = QQmlEnginePrivate::get(data->context->engine);
+    QQmlComponentPrivate::DeferredState state;
+    QQmlComponentPrivate::beginDeferred(ep, object, &state);
+
+    // Release the reference for the deferral action (we still have one from construction)
+    data->releaseDeferredData();
+
+    QQmlComponentPrivate::completeDeferred(ep, &state);
 }
 
 QQmlContext *qmlContext(const QObject *obj)
@@ -1812,7 +1817,7 @@ void QQmlData::deferData(int objectIndex, const QQmlRefPointer<QV4::ExecutableCo
     const QV4::CompiledData::Binding *binding = compiledObject->bindingTable();
     for (quint32 i = 0; i < compiledObject->nBindings; ++i, ++binding) {
         const QQmlPropertyData *property = propertyData.at(i);
-        if (property && binding->flags & QV4::CompiledData::Binding::IsDeferredBinding)
+        if (property && binding->hasFlag(QV4::CompiledData::Binding::IsDeferredBinding))
             deferData->bindings.insert(property->coreIndex(), binding);
     }
 

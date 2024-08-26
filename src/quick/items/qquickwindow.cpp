@@ -1494,7 +1494,11 @@ QQuickWindow::QQuickWindow(QQuickWindowPrivate &dd, QWindow *parent)
 }
 
 /*!
-    \internal
+    Constructs a window for displaying a QML scene, whose rendering will
+    be controlled by the \a control object.
+    Please refer to QQuickRenderControl's documentation for more information.
+
+    \since 5.4
 */
 QQuickWindow::QQuickWindow(QQuickRenderControl *control)
     : QWindow(*(new QQuickWindowPrivate), nullptr)
@@ -2209,6 +2213,8 @@ bool QQuickWindowPrivate::deliverSinglePointEventUntilAccepted(QQuickPointerEven
         itemPrivate->handlePointerEvent(event);
         if (point->isAccepted())
             return true;
+        if (!item->window())
+            continue;
         QPointF g = item->window()->mapToGlobal(point->scenePosition().toPoint());
 #if QT_CONFIG(wheelevent)
         // Let the Item have a chance to handle it

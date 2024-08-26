@@ -818,8 +818,11 @@ void QSGTextMaskMaterial::populate(const QPointF &p,
     QTextureGlyphCache *cache = glyphCache();
 
     QRawFontPrivate *fontD = QRawFontPrivate::get(m_font);
-    cache->populate(fontD->fontEngine, glyphIndexes.size(), glyphIndexes.constData(),
-                    fixedPointPositions.data());
+    cache->populate(fontD->fontEngine,
+                    glyphIndexes.size(),
+                    glyphIndexes.constData(),
+                    fixedPointPositions.data(),
+                    true);
     cache->fillInPendingGlyphs();
 
     int margin = fontD->fontEngine->glyphMargin(cache->glyphFormat());
@@ -839,9 +842,11 @@ void QSGTextMaskMaterial::populate(const QPointF &p,
     bool supportsSubPixelPositions = fontD->fontEngine->supportsSubPixelPositions();
     for (int i=0; i<glyphIndexes.size(); ++i) {
          QPointF glyphPosition = glyphPositions.at(i) + position;
+         QFixedPoint fixedPointPosition = fixedPointPositions.at(i);
+
          QFixed subPixelPosition;
          if (supportsSubPixelPositions)
-             subPixelPosition = fontD->fontEngine->subPixelPositionForX(QFixed::fromReal(glyphPosition.x()));
+             subPixelPosition = fontD->fontEngine->subPixelPositionForX(QFixed::fromReal(fixedPointPosition.x.toReal() * glyphCacheScaleX));
 
          QTextureGlyphCache::GlyphAndSubPixelPosition glyph(glyphIndexes.at(i), subPixelPosition);
          const QTextureGlyphCache::Coord &c = cache->coords.value(glyph);
